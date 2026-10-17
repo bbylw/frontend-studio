@@ -1,5 +1,40 @@
 # Changelog
 
+## 2.2.1 — 2026-10-17
+
+One hole in 2.2.0, found by trying to break it rather than by reading it.
+
+### Fixed
+
+- **Automatic canvas-art recognition could be used to dodge the picture floor.** `canvasArt` was true when a
+  page had no photographs, no interface fragments, a `<canvas>` covering a quarter of the first screen,
+  and at most 450 words. An ordinary landing page with a decorative chart on a canvas and no photography
+  met all four and was then exempt from `few-pictures`, `no-real-pictures`, `no-footage` and
+  `still-page` — which is precisely the shortcut the picture floor exists to close. The exemption also
+  fired inside `page` mode, because `rules.mjs` computes `art` from `canvasArt` as well as from the flag.
+
+  The word-count ceiling cannot do this job: a short landing page clears any prose limit. The
+  discriminator that works is whether the canvas *is* the piece, and `sections === 0` is the one
+  `inspect.mjs` already uses when it credits an animated canvas with full motion. Adding that condition
+  keeps the intended case working and closes the abuse:
+
+  | | `sections` | `words` | before | after |
+  | --- | --- | --- | --- | --- |
+  | `assets/viewer.html` — an art piece | 0 | 44 | art, 0 FAIL | art, 0 FAIL |
+  | a two-section landing page with a decorative canvas | 3 | 102 | art, **0 FAIL** | page, **FAIL `few-pictures`** |
+
+  `--surface art` passed explicitly is unaffected: naming the mode is a deliberate act, and the automatic
+  path is the one that has to earn it.
+
+### Verified
+
+The full `fs-verify` matrix re-run unchanged at 2.2.1: `audit.mjs` 0 FAIL / 0 WARN, skill self-scan
+0 FAIL / 0 WARN, and every documented `lint` and `inspect` number for `fixture-banned`,
+`fixture-product`, `fixture-mud`, `console` and `page-studio` identical in both modes.
+
+`canvas-test/dodge.html` is kept in the working directory as the regression case: a page that tries to buy
+the art exemption with a canvas and no photographs, and must keep failing.
+
 ## 2.2.0 — 2026-10-17
 
 An audit of the toolchain against its own contract in `SKILL.md` and `references/*` turned up seven places

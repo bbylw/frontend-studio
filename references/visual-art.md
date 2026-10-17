@@ -106,6 +106,14 @@ recognises a self-contained `<canvas>` viewer automatically: it counts `requestA
 drawing in the motion check and exempts the piece from the external photograph and video floor
 (`few-pictures`, `no-real-pictures`, `no-footage`), because the canvas itself is the visual work.
 
+Automatic recognition has to earn it. All of these must hold: no external photographs or interface
+fragments, a `<canvas>` covering at least a quarter of the first screen, at most 450 words on the page,
+**and no `<section>` elements at all**. That last one is what tells a piece that is its own subject from a
+landing page that drew a chart on a canvas instead of finding pictures — a real viewer has nothing to
+navigate, so it has no section structure, while a page always does. If the inspector judges your page in
+`page` mode and fails `few-pictures`, that is the correct answer: reach for `scripts/assets.mjs` or
+`--surface art` deliberately rather than expecting a canvas to substitute for photographs.
+
 ## 5. Refinement
 
 Refine, do not add. In order:
