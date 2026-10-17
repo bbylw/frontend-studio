@@ -1,5 +1,77 @@
 # Changelog
 
+## 2.2.0 — 2026-10-17
+
+An audit of the toolchain against its own contract in `SKILL.md` and `references/*` turned up seven places
+where a script did the opposite of what the document promised or went blind on a real page shape, plus four
+neighboring traps discovered while tracing the same code paths. Every one was reproduced in isolation and
+fixed at the root.
+
+### Added
+
+- **`--surface art` and automatic canvas-art recognition** across `draw.mjs`, `lint.mjs`, `inspect.mjs`,
+  `probe.mjs`, and `rules.mjs` (fixes **D5** and **D6**):
+  - `inspect.mjs` now patches `HTMLCanvasElement.prototype.getContext` and `requestAnimationFrame` in the
+    instrumented page so a `<canvas>` that redraws across frames or responds to scroll is counted in
+    `motion` alongside Web Animations and CSS transitions (`canvasMoved`). A generative canvas piece no
+    longer fails `still-page` with `0 element(s) moved`.
+  - `probe.mjs` sets `metrics.page.canvasArt` when a large `<canvas>` (≥ 25% of the viewport) carries the
+    piece with zero external photographs and ≤ 450 words, and `rules.mjs` (plus `--surface art`) exempts
+    such pieces from `few-pictures`, `no-real-pictures`, and `no-footage`, and lowers the motion floor to
+    `1 / 2` so a single self-contained HTML piece (`references/visual-art.md`) is never told to attach four
+    photographs.
+- **`--max-screens <n>` on `inspect.mjs`** (default raised from `12` to `20`, fixing **D2**). Each viewport
+  entry in `report.json` now records `screens` (photographed) and `totalScreens` (actual page height in
+  screens), and the console header explicitly prints `N of M screens photographed (K below cap; pass
+  --max-screens M to capture all)` whenever a page exceeds the cap.
+
+### Changed
+
+- **`assets/viewer.html` hardened against its own gates**:
+  - Replaced `<div class="sidebar">` and `<div class="stage">` with semantic `<aside>` and `<main>`
+    landmarks, and reordered the mobile stacked layout (`@media (max-width: 760px)`) so the `<main>` canvas
+    sits above the `<aside>` controls (`references/visual-art.md` §"The viewer template"). Adding longer
+    notes to a piece built from `viewer.html` no longer trips `landmark-main` in `lint.mjs`.
+  - `.sidebar .subtitle` now uses `var(--step-body)` (`1rem` / `16px`) and `var(--ink)` instead of
+    `13px` muted text, so replacing the placeholder subtitle with a 60+ character description never trips
+    `body-size` or `grey-body` in `inspect.mjs`.
+- **`SKILL.md` and `README.md` library counts synced** with `scripts/audit.mjs` (22 directions, 51 hero
+  blueprints, 172 section blueprints across 16 roles, 49 type systems, 56 palettes, 181 sites).
+
+### Fixed
+
+- **D1 · `lint.mjs` now reads `surface` and `allow` back from `.frontend-studio/direction.json`** when
+  `--surface` or `--allow` is omitted, walking up from the target path (and current working directory)
+  exactly as `inspect.mjs` does and printing `[surface product]` in the summary. Previously `lint.mjs`
+  defaulted unconditionally to `page`, causing product-surface tables, monospace data cells, and floating
+  menu shadows to fail when invoked without `--surface product`.
+- **D2 · `inspect.mjs` no longer silently drops the bottom of long pages.** Default screen capture cap
+  increased from 12 to 20 screens per viewport, with `totalScreens` recorded and any unphotographed screens
+  reported explicitly.
+- **D3 · `probe.mjs` skips unrendered content inside closed `<details>` and `content-visibility: hidden`
+  subtrees.** Chrome hides closed `<details>` children via UA `content-visibility` on an anonymous slot
+  while leaving non-zero bounding boxes and `display !== 'none'` on the children. `probe.mjs` now checks
+  `el.checkVisibility({ checkVisibilityCSS: true, contentVisibilityAuto: true })` and verifies that no
+  ancestor `<details>` is closed before measuring text, rules, controls, or pictures. Open `<details open>`
+  elements continue to be measured normally.
+- **D4 · `probe.mjs` measures text contrast across the full document height.** Removed `t.top - SY > H * 6`
+  from the contrast loop, which previously stopped checking contrast after the sixth viewport height and
+  missed low-contrast footer links and colophons on long pages (`overMedia(t)` remains intact).
+- **D7 · `draw.mjs --list roles` now lists all accepted section roles**, printing both the 16 canonical
+  page roles (`features`, `showcase`, `process`, …) and the product-surface role aliases (`panel`, `table`,
+  `inspector`, `timeline`, `empty-state`, `metrics`, `specimens`, `changelog`, `records`) promised in
+  `SKILL.md`. In addition, `draw.mjs` now preserves `requestedRole` on each section entry in
+  `.frontend-studio/direction.json` so `--redraw section:inspector` works alongside `--redraw section:showcase`.
+- **`assets.mjs` strips a trailing file extension passed to `--name`** (`stripKnownExt()`) before slugifying
+  and appends the real format extension once, so `--name w900.jpg` writes `w900.jpg` instead of
+  `w900-jpg.jpg`. Also added explicit `res.resume()` when draining oversized streams in `getBytes()` so sockets
+  close cleanly on Node 22+.
+- **`draw.mjs` `adjustments()` no longer fires false-positive warnings on negated library notes** such as
+  `"separated by whitespace, not by borders or shadows"` or `"No pill badges"`, and prints product-appropriate
+  motion guidance in `product` mode (`references/product-surfaces.md` §6).
+- **`lint.mjs` single-line multi-rule CSS tracking** now updates the active selector to the trailing rule
+  after the last `}` on a line instead of resetting `sel = ''` whenever `}` appears anywhere on the line.
+
 ## 2.1.0 — 2026-10-17
 
 The 2.0 rebuild imported taste-skill's toolchain and its rules. In use, the results were competent and

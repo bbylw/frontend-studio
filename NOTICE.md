@@ -13,12 +13,12 @@ The licence text is kept verbatim in `LICENSE-taste-skill`. Nothing in that file
 
 | Item | State |
 | --- | --- |
-| `scripts/lib/cdp.mjs`, `scripts/lib/probe.mjs` | Imported. Zero-dependency Chrome DevTools Protocol driver and the in-page measurement pass. |
-| `scripts/lib/rules.mjs` | Imported, then extended (see `CHANGELOG.md`): surface modes, and the four mode-gated rules. |
-| `scripts/inspect.mjs` | Imported, then extended: `--surface`, a surface mode read from the direction sheet, and a mode-aware motion floor. |
-| `scripts/lint.mjs` | Imported, then extended: `--surface` with a per-finding downgrade, and the `fs-ignore` escape comment (upstream name: `taste-ignore`). |
+| `scripts/lib/cdp.mjs`, `scripts/lib/probe.mjs` | Imported; `probe.mjs` extended (see `CHANGELOG.md`): `checkVisibility` / closed-`<details>` filtering, full-document contrast measurement, `picture-on-colour`, and `canvasArt` detection. |
+| `scripts/lib/rules.mjs` | Imported, then extended (see `CHANGELOG.md`): surface modes (`page`, `product`, `art`), `picture-on-colour`, and the mode-gated rules. |
+| `scripts/inspect.mjs` | Imported, then extended: `--surface`, `--max-screens`, a surface mode read from the direction sheet, canvas redraw motion tracking, and a mode-aware motion floor. |
+| `scripts/lint.mjs` | Imported, then extended: `--surface` (with direction-sheet fallback and per-finding downgrade) and the `fs-ignore` escape comment (upstream name: `taste-ignore`). |
 | `scripts/draw.mjs` | Imported, then extended: three new sectors, their default section orders, their role aliases, `--surface`, and the product-mode sheet text. |
-| `scripts/assets.mjs` | Imported unchanged in behaviour; the request User-Agent was rebranded to `frontend-studio-assets/2.0`, keeping the upstream URL for attribution. |
+| `scripts/assets.mjs` | Imported, then fixed (`--name` extension stripping and stream drain); the request User-Agent was rebranded to `frontend-studio-assets/2.0`, keeping the upstream URL for attribution. |
 | `library/directions.json`, `heroes.json`, `sections.json`, `type.json`, `palettes.json`, `photos.json`, `sites.json`, `motions.json` | Imported as the research library, then extended with two directions, three hero blueprints and the product-surface sectors. |
 | `assets/base.css`, `assets/base.js` | Imported; only the header comment was rebranded. |
 | `assets/viewer.html` | Imported as a scaffold, then largely rewritten (see `CHANGELOG.md`). |
