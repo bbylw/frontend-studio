@@ -5,8 +5,9 @@
 //   node lint.mjs [files or directories ...] [--surface page|product] [--json]
 //
 // --surface product tolerates the patterns a working interface legitimately needs — monospace in the
-// literal-data role, rank and count numbers, rules inside tables and lists, a shadow on something that
-// floats — and keeps banning the rest. The list and its reasoning: references/product-surfaces.md §5.
+// literal-data role, rank and count numbers, panel titles and field labels, compact column-header labels,
+// rules inside tables and lists, a shadow on something that floats — and keeps banning the rest. The list
+// and its reasoning: references/product-surfaces.md §5.
 //
 // Exit code 1 when any FAIL is found. Zero dependencies.
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
@@ -98,7 +99,7 @@ const R = [
 const findings = [];
 // In product mode these fall from FAIL to WARN: they are legitimate inside a working interface, and only
 // a designer looking at the screen can tell "a table's rules" from "a decoration". The rule still speaks.
-const RELAXED = surface === 'product' ? new Set(['mono', 'numbering', 'hairline', 'outlined-box', 'shadow']) : new Set();
+const RELAXED = surface === 'product' ? new Set(['mono', 'numbering', 'eyebrow', 'micro-label', 'hairline', 'outlined-box', 'shadow']) : new Set();
 let emDashes = 0;
 for (const file of files) {
   const rel = relative(process.cwd(), file).split('\\').join('/');
@@ -154,5 +155,5 @@ for (const lvl of ['FAIL', 'WARN']) {
 const fails = findings.filter((f) => f.level === 'FAIL').length;
 console.log(`\nRESULT: ${fails} FAIL, ${findings.length - fails} WARN${fails ? ' — fix the FAILs before rendering.' : ''}`);
 console.log('Interface fragments marked data-ui keep their own borders and shadows. Any other line that must keep a flagged pattern for a real reason can carry the comment fs-ignore.');
-if (surface === 'product') console.log('Product mode: monospace in the literal-data role, rank and count numbers, rules inside tables and lists, and shadows on things that float are warnings now, not failures. Gradients, glow, emoji and the assistant palette are still failures.');
+if (surface === 'product') console.log('Product mode: monospace in the literal-data role, rank and count numbers, panel titles and field labels, compact column-header labels, rules inside tables and lists, and shadows on things that float are warnings now, not failures. Gradients, glow, emoji and the assistant palette are still failures.');
 process.exit(fails ? 1 : 0);

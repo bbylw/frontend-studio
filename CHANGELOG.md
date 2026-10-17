@@ -1,5 +1,39 @@
 # Changelog
 
+## 2.2.2 — 2026-10-17
+
+Four issues reproduced from `skill-bugs-for-review.md` and fixed across the scripts, library and reference docs.
+
+### Fixed
+
+- **`assets.mjs --credits` silently dropped credits for a still-used image when an earlier download of the
+  same `ref` had been deleted (`scripts/assets.mjs:844`).** `printCredits()` previously combined
+  `list.findIndex((x) => x.ref === c.ref) === i` and `existsSync(resolve(c.file))` in a single `.filter()`
+  pass. When the same source image was downloaded twice under different filenames and the first file was
+   later deleted, the first entry failed `existsSync` while the second entry failed `findIndex === i`,
+  leaving zero credit lines for an image still on disk. `printCredits()` now filters to existing files first
+  and deduplicates by `ref` across the surviving entries.
+- **`long-pin` warned at 3 screens instead of past 3 screens (`scripts/inspect.mjs:201-202`,
+  `scripts/draw.mjs:423`, `library/directions.json:156,164`, `library/motions.json:20`).** `references/motion.md`,
+  `references/creative-patterns.md`, `draw.mjs` and the `300svh` library blueprints all allow a pin of two
+  or three screens and state that the inspector warns past three, whereas `inspect.mjs` triggered `long-pin`
+  at `r.best >= 3` with a fix message saying two screens. Updated `inspect.mjs` to warn at `r.best > 3`
+  ("two or three screens"), expanded the `draw.mjs` adjustment regex so multi-portrait pinned blueprints
+  (`up to six people`, `five to eight in all`) also receive the pin adjustment note, and aligned the leftover
+  "under six screens / viewports" and "Five to eight in the pinned run" strings in `motions.json` and
+  `directions.json`.
+- **`long-pin` ignored large pinned text set in `<div>` or `<span>` (`scripts/lib/probe.mjs:602`).** The
+  per-frame `big` text collector only queried `h1–h6, p, blockquote`, while `covered-text`, `clipped-text`
+  and `pinned-over-picture` in the same `frame()` pass queried
+  `h1, h2, h3, h4, h5, h6, p, blockquote, li, a, button, span, div`. Expanded `big` to use the same
+  selector and require direct text on non-semantic containers (unless already inside a ≥ 32px heading,
+  paragraph or blockquote) so identical visual pins produce identical findings regardless of tag.
+- **`lint.mjs --surface product` still failed `eyebrow` and `micro-label` while `inspect.mjs --surface product`
+  and `references/product-surfaces.md` §5 relaxed both to warnings (`scripts/lint.mjs:7-10,101,157`,
+  `references/tells.md:12-17`).** Added `'eyebrow'` and `'micro-label'` to `RELAXED` in `lint.mjs` and
+  updated the product-mode summary lines in `lint.mjs` and `references/tells.md` to match
+  `references/product-surfaces.md` §5 and `scripts/lib/rules.mjs`.
+
 ## 2.2.1 — 2026-10-17
 
 One hole in 2.2.0, found by trying to break it rather than by reading it.

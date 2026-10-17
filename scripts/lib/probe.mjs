@@ -599,7 +599,19 @@ export function frame() {
     }
   }
   // 3. the large text in view, to spot one statement held on screen for screen after screen
-  const big = [...new Set([...document.querySelectorAll('h1, h2, h3, h4, h5, h6, p, blockquote')].filter((el) => { const r = el.getBoundingClientRect(); return parseFloat(getComputedStyle(el).fontSize) >= 32 && r.top >= -4 && r.bottom <= H + 4 && r.height > 0; }).map((el) => (el.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 60)).filter((t) => t.length >= 4))];
+  const big = [...new Set([...document.querySelectorAll('h1, h2, h3, h4, h5, h6, p, blockquote, li, a, button, span, div')].filter((el) => {
+    if (isHidden(el)) return false;
+    const cs = getComputedStyle(el);
+    if (parseFloat(cs.fontSize) < 32 || cs.visibility === 'hidden' || +cs.opacity < 0.3) return false;
+    if (!/^(H[1-6]|P|BLOCKQUOTE)$/.test(el.tagName)) {
+      const anc = el.closest('h1, h2, h3, h4, h5, h6, p, blockquote');
+      if (anc && parseFloat(getComputedStyle(anc).fontSize) >= 32) return false;
+      let direct = ''; for (const n of el.childNodes) if (n.nodeType === 3) direct += n.nodeValue;
+      if (direct.trim().length < 4) return false;
+    }
+    const r = el.getBoundingClientRect();
+    return r.top >= -4 && r.bottom <= H + 4 && r.height > 0;
+  }).map((el) => (el.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 60)).filter((t) => t.length >= 4))];
   return { covered, clipped, pinnedOver, filled: Math.round((filled / samples) * 100) / 100, big, y: Math.round(scrollY) };
 }
 

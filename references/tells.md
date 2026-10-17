@@ -10,11 +10,12 @@ Replacements here are procedures (draw from the library, derive from the subject
 inspector fails the page; **warned** means it flags it and you need a reason.
 
 **Product surfaces.** A handful of these entries are legitimate inside a working interface — monospace in
-the literal-data role, numbers that are real data, rules inside tables and lists, a shadow on something
-that truly floats, compact tiles. Under `--surface product` they are warnings rather than failures. That
-relaxation is documented rule by rule, with the reasoning, in `product-surfaces.md` §5. Everything else in
-this file still applies in both modes: gradients, glow, emoji, the assistant palette, eyebrows, styled
-accent words and false proof are banned everywhere.
+the literal-data role, numbers that are real data, panel titles and field labels, compact column-header
+labels, rules inside tables and lists, a shadow on something that truly floats, compact tiles. Under
+`--surface product` they are warnings rather than failures. That relaxation is documented rule by rule,
+with the reasoning, in `product-surfaces.md` §5. Everything else in this file still applies in both modes:
+gradients, glow, emoji, the assistant palette, decorative kickers above a screen title, styled accent
+words and false proof are banned everywhere.
 
 ## Contents
 

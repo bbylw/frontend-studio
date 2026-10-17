@@ -841,7 +841,8 @@ async function getAll(refs, opts) {
 // ---------- credits ----------
 function printCredits(opts) {
   const list = readCredits(opts);
-  const uniq = list.filter((c, i) => list.findIndex((x) => x.ref === c.ref) === i && existsSync(resolve(c.file)));
+  const live = list.filter((c) => existsSync(resolve(c.file)));
+  const uniq = live.filter((c, i) => live.findIndex((x) => x.ref === c.ref) === i);
   if (!uniq.length) { console.log(`No pictures recorded in ${rel(creditsPath(opts))} yet. Download them with --get <ref> first.`); return 1; }
   const html = (c) => {
     const by = c.creator && !/^(unknown|anonymous)\b/i.test(c.creator) ? ` by ${esc(short(c.creator, 60))}` : '';

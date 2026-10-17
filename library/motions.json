@@ -17,7 +17,7 @@
  {
   "id": "pinned-story",
   "name": "Pinned story",
-  "description": "One element holds its place with `position: sticky` (a title, a frame, a product fragment) while the items that belong to it scroll past or swap inside it. The page's ordinary scrolling does the work; nothing is hijacked. Keep the pinned run under six screens. Recipe: 'Pinned story' in references/motion.md."
+  "description": "One element holds its place with `position: sticky` (a title, a frame, a product fragment) while the items that belong to it scroll past or swap inside it. The page's ordinary scrolling does the work; nothing is hijacked. Hold the pinned run to two or three screens. Recipe: 'Pinned story' in references/motion.md."
  },
  {
   "id": "index-preview",
