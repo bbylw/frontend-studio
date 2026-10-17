@@ -88,12 +88,13 @@ const DEFAULT_SECTIONS = {
 // Product-surface roles are aliases onto the same vocabulary, so `--sections panel,table,empty-state`
 // draws from the same blueprint library as `--sections showcase,list,intro`.
 const ROLE_ALIAS = { features: 'features', feature: 'features', benefits: 'features', services: 'features', showcase: 'showcase', product: 'showcase', demo: 'showcase', panel: 'showcase', inspector: 'showcase', 'how-it-works': 'how-it-works', how: 'how-it-works', process: 'how-it-works', steps: 'how-it-works', flow: 'how-it-works', timeline: 'how-it-works', testimonial: 'testimonial', testimonials: 'testimonial', quotes: 'testimonial', proof: 'proof', logos: 'proof', press: 'proof', stats: 'stats', numbers: 'stats', metrics: 'stats', kpis: 'stats', pricing: 'pricing', plans: 'pricing', tickets: 'pricing', price: 'pricing', faq: 'faq', cta: 'cta', footer: 'footer', intro: 'intro', manifesto: 'intro', 'empty-state': 'intro', onboarding: 'intro', about: 'about', team: 'about', work: 'work', projects: 'work', index: 'work', 'case-studies': 'work', gallery: 'gallery', images: 'gallery', specimens: 'gallery', list: 'list', menu: 'list', schedule: 'list', lineup: 'list', 'line-up': 'list', speakers: 'list', agenda: 'list', programme: 'list', program: 'list', timetable: 'list', rooms: 'list', table: 'list', records: 'list', releases: 'list', changelog: 'list', contact: 'contact', booking: 'contact', newsletter: 'contact', signup: 'contact' };
+const PRODUCT_ROLES = ['panel', 'table', 'inspector', 'timeline', 'empty-state'];
 
 if (opt('list')) {
   const what = opt('list');
   if (what === 'sectors') console.log(SECTORS.join('\n'));
   else if (what === 'tones') console.log(TONES.join('\n'));
-  else if (what === 'roles') console.log([...new Set(Object.values(ROLE_ALIAS))].join('\n'));
+  else if (what === 'roles') console.log([...new Set([...Object.values(ROLE_ALIAS), ...PRODUCT_ROLES])].join('\n'));
   else for (const d of load('directions')) console.log(`${d.id.padEnd(30)} ${d.name} — ${d.sectors.join(', ')}`);
   process.exit(0);
 }
@@ -177,15 +178,20 @@ if (opt('redraw')) {
     // section:<role> re-deals at random; section:<role>=<id> takes a named alternative (see --alternatives)
     const [roleRaw, wanted] = what.slice(8).split('=');
     const role = ROLE_ALIAS[roleRaw] || roleRaw;
-    const i = sheet.sections.findIndex((s) => s.role === role);
-    if (i === -1) { console.error('No section with role ' + role + ' in this sheet.'); process.exit(2); }
+    let i = sheet.sections.findIndex((s) => s.requestedRole === roleRaw);
+    if (i === -1) i = sheet.sections.findIndex((s) => s.role === role);
+    if (i === -1) { console.error('No section with role ' + roleRaw + ' in this sheet.'); process.exit(2); }
+    const reqRole = sheet.sections[i].requestedRole || role;
     const used = sheet.sections.map((s) => s.id);
     if (wanted) {
       // a blueprint written for another role may be borrowed when its geometry fits the content better
       const chosen = L.sections.find((s) => s.id === wanted);
       if (!chosen) { console.error(`No blueprint with id ${wanted}. List them with --alternatives <role>.`); process.exit(2); }
-      sheet.sections[i] = chosen.role === role ? chosen : { ...chosen, role, name: `${chosen.name} (borrowed from ${chosen.role})` };
-    } else sheet.sections[i] = dealSection(dir, role, used, sheet.sections[i - 1]?.shape, sheet.sections[i + 1]?.shape, sheet.input) || sheet.sections[i];
+      sheet.sections[i] = { ...(chosen.role === role ? chosen : { ...chosen, role, name: `${chosen.name} (borrowed from ${chosen.role})` }), requestedRole: reqRole };
+    } else {
+      const dealt = dealSection(dir, role, used, sheet.sections[i - 1]?.shape, sheet.sections[i + 1]?.shape, sheet.input);
+      if (dealt) sheet.sections[i] = { ...dealt, requestedRole: reqRole };
+    }
   } else { console.error('Unknown slot. Use hero, type, palette, photos, section:<role>, section:<role>=<id> or direction.'); process.exit(2); }
 } else {
   const sector = String(opt('sector', ''));
@@ -195,8 +201,8 @@ if (opt('redraw')) {
   }
   const requested = list(opt('sections'));
   const surfaceOpt = String(opt('surface', ''));
-  if (surfaceOpt && !['page', 'product'].includes(surfaceOpt)) {
-    console.error(`--surface must be "page" or "product" (got "${surfaceOpt}").`);
+  if (surfaceOpt && !['page', 'product', 'art'].includes(surfaceOpt)) {
+    console.error(`--surface must be "page", "product" or "art" (got "${surfaceOpt}").`);
     process.exit(2);
   }
   const toneOpt = opt('tone');
@@ -208,15 +214,17 @@ if (opt('redraw')) {
   // is printed with the sheet, because a docs site or a dashboard can genuinely be either and the person
   // reading the sheet is the one who knows which.
   const INFER_PRODUCT = ['dashboard', 'docs', 'component'];
-  const surfaceGiven = ['page', 'product'].includes(surfaceOpt);
+  const surfaceGiven = ['page', 'product', 'art'].includes(surfaceOpt);
   const inferredSurface = INFER_PRODUCT.includes(sector) ? 'product' : 'page';
+  const rawSections = (requested.length ? requested : DEFAULT_SECTIONS[sector]).filter((r) => (ROLE_ALIAS[r] || r) !== 'hero');
   const input = {
     brief: typeof opt('brief') === 'string' ? opt('brief') : '', sector,
     surface: surfaceGiven ? surfaceOpt : inferredSurface,
     surfaceInferred: !surfaceGiven,
     tone: TONES.includes(toneOpt) ? toneOpt : null,
     have: list(opt('have')), keep: list(opt('keep')), avoid: list(opt('avoid')),
-    sections: (requested.length ? requested : DEFAULT_SECTIONS[sector]).map((r) => ROLE_ALIAS[r] || r).filter((r) => r !== 'hero'),
+    sections: rawSections.map((r) => ROLE_ALIAS[r] || r),
+    requestedSections: rawSections,
     direction: typeof opt('direction') === 'string' ? opt('direction') : null,
   };
   if (input.direction && !L.directions.some((d) => d.id === input.direction)) { console.error(`No direction with id ${input.direction}. List them with --list directions.`); process.exit(2); }
@@ -289,9 +297,12 @@ function deal(input, redraws) {
   s.photos = dealPhotos(dir, input);
   s.motion = L.motions.find((m) => m.id === (s.hero?.motion || dir.motion)) || L.motions.find((m) => m.id === dir.motion) || null;
   s.sections = [];
-  for (const role of input.sections) {
+  for (let idx = 0; idx < input.sections.length; idx++) {
+    const role = input.sections[idx];
+    const requestedRole = input.requestedSections?.[idx] || role;
     const sec = dealSection(dir, role, s.sections.map((x) => x.id), s.sections.at(-1)?.shape, null, input);
-    if (sec) s.sections.push(sec); else s.sections.push({ id: null, role, shape: null, name: role, blueprint: null });
+    if (sec) s.sections.push({ ...sec, requestedRole });
+    else s.sections.push({ id: null, role, requestedRole, shape: null, name: role, blueprint: null });
   }
   s.references = dealReferences(dir, input);
   return s;
@@ -397,12 +408,16 @@ function adjustments(bp, s) {
   const running = sizes(/\b(14|15)px\s*(?:paragraphs?|body|text|descriptions?|copy|sentences?|answers?)/gi);
   if (running.length) notes.push(`It sets running text at ${running.join(', ')}: paragraphs use your body step (16px or more).`);
   if (/\d{1,2}% (?:opacity|black|ink|grey|gray|white)|opacity:? ?0?\.\d|\b(?:rest|others?|remaining)\b[^.;]{0,25}\b(?:at|to) \d{1,2}%(?! (?:of|width|wide))|full (?:ink|white|strength)[^.;]{0,60}\bat \d{1,2}%(?! (?:of|width|wide))/i.test(text)) notes.push('It fades text: anything a visitor reads, inactive items of a list included, is `--ink` or `--muted` at full strength (contrast 4.5:1 or more). The active item is told apart by `--ink` against `--muted`, weight or the accent, not by fading the rest.');
-  if (/\d+px (?:corner )?radius|radius (?:of )?\d+px|\brounded\b|\bpill/i.test(text)) notes.push('It names its own corners: use the one radius of this page (square unless the direction says otherwise) and one button shape.');
+  const hasUnnegated = (pattern) => {
+    const clauses = text.split(/[.;!?\n]+/);
+    return clauses.some((cl) => pattern.test(cl) && !/\b(?:no|without|never|not|nor)\b/i.test(cl.slice(0, cl.search(pattern))));
+  };
+  if (hasUnnegated(/\d+px (?:corner )?radius|radius (?:of )?\d+px|\brounded\b|\bpill\b/i)) notes.push('It names its own corners: use the one radius of this page (square unless the direction says otherwise) and one button shape.');
   if (/\b(?:serif|sans-serif|condensed|grotesk|italic|monospace|mono|all caps|uppercase|capitals|script)\b/i.test(text)) notes.push(s.type ? `It names a kind of typeface: use the dealt faces (display ${s.type.display.family}, text ${s.type.text.family}) and their settings; capitals only where the type system sets them.` : 'It names a kind of typeface: use the brand faces.');
   const colours = [...new Set([...text.matchAll(/\b(green|red|blue|yellow|orange|pink|purple|teal|navy|cream|beige|brown|grey|gray|white|black)\b(?![- ](?:space|studio|background disappears))/gi)].map((m) => m[1].toLowerCase()))];
   if (colours.length) notes.push(`It names colours (${colours.join(', ')}): map them onto this palette's roles (ground \`--bg\`, panels \`--surface\` and the fields, text \`--ink\`/\`--muted\`, the accent \`--accent\` on the primary action only).`);
-  if (/(?<!\b(?:no|without|never|not|nor) (?:a |any )?)\b(?:rule|rules|hairline|border|borders|divider|underline|thin line|1px line)\b/i.test(text)) notes.push('It draws lines or borders: keep them only inside a table, a form or a `data-ui` fragment; elsewhere separate with space or a change of ground.');
-  if (/shadow|glow/i.test(text)) notes.push('It mentions a shadow: only on something open above the page (a menu, a dialog), never on a resting element.');
+  if (hasUnnegated(/\b(?:rule|rules|hairline|border|borders|divider|underline|thin line|1px line)\b/i)) notes.push('It draws lines or borders: keep them only inside a table, a form or a `data-ui` fragment; elsewhere separate with space or a change of ground.');
+  if (hasUnnegated(/\b(?:shadows?|glow)\b/i)) notes.push('It mentions a shadow: only on something open above the page (a menu, a dialog), never on a resting element.');
   const bigSentence = [...text.matchAll(/\b(?:sentence|statement|paragraph|quotation|quote)\b[^.;]{0,40}?\b(?:at|to)\s+(?:clamp\(\s*\d+(?:\.\d+)?px,\s*)?(\d+(?:\.\d+)?)(px|vw)/gi)].some((m) => (m[2] === 'px' && +m[1] > 36) || (m[2] === 'vw' && +m[1] > 2.6));
   if (bigSentence) notes.push('It sets a sentence large over several lines: jurors read that as a long headline. Either cut it to a two-line headline at display size, or keep it a statement at 36px or less on three lines (24px, four lines on a phone).');
   if (/(?:sticky|pinned|pins?\b|stays? (?:fixed|put|in place))/i.test(text) && /\b(?:three|four|five|six) (?:to (?:four|five|six) )?(?:viewports|screens)\b|\b[3-6]00svh\b/i.test(text)) notes.push('It pins something for three screens or more: hold a pin for two or three screens at most, give every screen under it its own content, and let nothing pass over the pinned words (the inspector checks all three).');
@@ -576,11 +591,17 @@ function render(s) {
   p('section when the argument of the page needs it (see references/copy.md), never to fall back to a card grid.');
   s.sections.forEach((sec, i) => {
     p();
-    if (!sec.blueprint) { p(`### ${i + 1}. ${sec.role}`); p('No blueprint in the library for this role. Compose it from the direction above, using a layout shape not used by its neighbours.'); return; }
-    p(`### ${i + 1}. ${sec.role} — ${sec.name} (${sec.shape})`); p(sec.blueprint); if (sec.mobile) p(`On a phone: ${sec.mobile}`); adjust(sec);
+    const roleLabel = sec.requestedRole && sec.requestedRole !== sec.role ? `${sec.requestedRole} (${sec.role})` : sec.role;
+    if (!sec.blueprint) { p(`### ${i + 1}. ${roleLabel}`); p('No blueprint in the library for this role. Compose it from the direction above, using a layout shape not used by its neighbours.'); return; }
+    p(`### ${i + 1}. ${roleLabel} — ${sec.name} (${sec.shape})`); p(sec.blueprint); if (sec.mobile) p(`On a phone: ${sec.mobile}`); adjust(sec);
   });
   p();
-  if (s.motion) { p(`## 8. Motion — ${s.motion.name}`); p(s.motion.description); p('This is the signature move, the one loud moment. Around it the page still needs the rest of the motion layer (SKILL.md step 9): an entrance for the parts of every section, feedback on every control, and one moving picture. The inspector fails a page that barely moves. Recipes: references/motion.md.'); p(); }
+  if (s.motion) {
+    p(`## 8. Motion — ${s.motion.name}`); p(s.motion.description);
+    if ((s.input.surface || 'page') === 'product') p('In a working interface the motion floor is lower than on a marketing page, never zero: immediate feedback on every control, real state transitions when panels or rows change, and one signature move where it serves the work (references/product-surfaces.md §6).');
+    else p('This is the signature move, the one loud moment. Around it the page still needs the rest of the motion layer (SKILL.md step 9): an entrance for the parts of every section, feedback on every control, and one moving picture. The inspector fails a page that barely moves. Recipes: references/motion.md.');
+    p();
+  }
   if (d.richness) { p('## 9. Where the richness comes from'); p(d.richness); p(); }
   if (d.pitfalls) { p('## 10. How this direction goes wrong'); p(d.pitfalls); p(); }
   if (s.references?.length) {

@@ -101,6 +101,11 @@ Two rules the template enforces and you must not undo: **flat fills only** (no g
 controls or in text) and **no shadows on resting surfaces** (a tone step separates the panel from the
 ground). Both are house rules, and `lint.mjs` will fail a file that breaks them.
 
+When you run `inspect.mjs` on a generative piece (either directly or with `--surface art`), the inspector
+recognises a self-contained `<canvas>` viewer automatically: it counts `requestAnimationFrame` canvas
+drawing in the motion check and exempts the piece from the external photograph and video floor
+(`few-pictures`, `no-real-pictures`, `no-footage`), because the canvas itself is the visual work.
+
 ## 5. Refinement
 
 Refine, do not add. In order:

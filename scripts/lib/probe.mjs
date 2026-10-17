@@ -52,6 +52,16 @@ export function probe() {
     }
     return false;
   };
+  // Elements hidden by closed <details>, content-visibility: hidden, or CSS visibility/display are not on the page.
+  const isHidden = (el) => {
+    if (typeof el.checkVisibility === 'function' && !el.checkVisibility({ checkVisibilityCSS: true, contentVisibilityAuto: false })) return true;
+    const d = el.closest('details:not([open])');
+    if (d && d !== el) {
+      const sum = d.querySelector(':scope > summary');
+      if (!sum || !sum.contains(el)) return true;
+    }
+    return false;
+  };
   const GENERIC = /^(serif|sans-serif|monospace|system-ui|ui-sans-serif|ui-serif|ui-monospace|ui-rounded|cursive|fantasy|inherit|-apple-system|BlinkMacSystemFont|Segoe UI|Arial|Helvetica|Helvetica Neue|Times New Roman|Times|Georgia|Verdana|Tahoma|Courier New|Courier|Roboto|Apple Color Emoji)$/i;
 
   // --- collect elements
@@ -64,7 +74,7 @@ export function probe() {
     const r = el.getBoundingClientRect();
     if (r.width < 1 || r.height < 1) continue;
     const cs = getComputedStyle(el);
-    if (cs.display === 'none' || cs.visibility === 'hidden') continue;
+    if (cs.display === 'none' || cs.visibility === 'hidden' || isHidden(el)) continue;
     const area = r.width * r.height;
     if (area >= 60 * 30) big.push({ el, r, cs, area, top: r.top + SY });
     let direct = '';
@@ -272,7 +282,7 @@ export function probe() {
   };
   const lowContrast = [];
   for (const t of texts) {
-    if (t.chars < 4 || t.top - SY > H * 6) continue;
+    if (t.chars < 4) continue;
     const fg = rgba(t.color); if (fg.a < 0.99) continue;
     if (overMedia(t)) continue; // cannot know the pixels behind it; judge that from the screenshot
     // text blended with difference or exclusion inverts whatever lies under it; its colour alone says nothing
@@ -288,6 +298,7 @@ export function probe() {
   // --- buttons
   const buttons = [];
   for (const el of document.querySelectorAll('a, button, [role="button"], input[type="submit"]')) {
+    if (isHidden(el)) continue;
     const r = el.getBoundingClientRect(); if (r.height < 28 || r.height > 84 || r.width < 64 || r.width > Math.min(W * 0.96, 900)) continue;
     const cs = getComputedStyle(el); let bg = rgba(cs.backgroundColor); const bw = parseFloat(cs.borderTopWidth) || 0;
     const grad = cs.backgroundImage.includes('gradient(');
@@ -352,7 +363,7 @@ export function probe() {
     const r = el.getBoundingClientRect();
     const horiz = r.height > 0 && r.height <= 1.5 && r.width >= 160, vert = r.width > 0 && r.width <= 1.5 && r.height >= 160;
     if (!horiz && !vert) continue; if (formish(el) && (el.tagName !== 'HR' || el.closest('[data-ui]'))) continue;
-    const cs = getComputedStyle(el); if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity < 0.03) continue;
+    const cs = getComputedStyle(el); if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity < 0.03 || isHidden(el)) continue;
     if (rgba(cs.backgroundColor).a > 0.02 || parseFloat(cs.borderTopWidth) > 0 || parseFloat(cs.borderLeftWidth) > 0 || cs.backgroundImage !== 'none') { hairlines++; if (hairlineSamples.length < 5) hairlineSamples.push(label(el) + ' ' + Math.round(Math.max(r.width, r.height)) + 'px rule'); }
   }
 
@@ -404,7 +415,7 @@ export function probe() {
   const svgSrc = (u) => /\.svg(\?|#|$)|^data:image\/svg/i.test(u || '');
   let realPictures = 0, videoCount = 0; const pictureSamples = [];
   for (const el of all) {
-    if (el.closest('[data-ui]') || el.closest('svg')) continue;
+    if (el.closest('[data-ui]') || el.closest('svg') || isHidden(el)) continue;
     const r = el.getBoundingClientRect(); if (r.width < 120 || r.height < 90 || r.width * r.height < 160 * 120) continue;
     if (el.tagName === 'IMG') {
       const src = el.currentSrc || el.src;
@@ -415,7 +426,7 @@ export function probe() {
     const bg = getComputedStyle(el).backgroundImage;
     if (bg && bg.includes('url(')) { const u = (bg.match(/url\(["']?([^"')]+)/) || [])[1]; if (!svgSrc(u)) realPictures++; }
   }
-  const uiPictures = [...document.querySelectorAll('[data-ui]')].filter((el) => { const r = el.getBoundingClientRect(); return r.width >= 300 && r.height >= 200; }).length;
+  const uiPictures = [...document.querySelectorAll('[data-ui]')].filter((el) => { if (isHidden(el)) return false; const r = el.getBoundingClientRect(); return r.width >= 300 && r.height >= 200; }).length;
   // --- pictures laid on a saturated ground
   // The first opaque ground above a picture. A picture dropped straight onto a mid-tone saturated ground
   // reads as mud: the two colours fight and neither looks deliberate. It is the commonest way a bold
@@ -431,7 +442,7 @@ export function probe() {
   };
   const onSaturatedGround = [];
   for (const el of all) {
-    if (el.closest('[data-ui]') || el.closest('svg')) continue;
+    if (el.closest('[data-ui]') || el.closest('svg') || isHidden(el)) continue;
     if (!/^(IMG|VIDEO|CANVAS|PICTURE)$/.test(el.tagName)) continue;
     const r = el.getBoundingClientRect(); if (r.width < 240 || r.height < 160 || r.width * r.height < 240 * 160) continue;
     const g = groundUnder(el); if (!g) continue;
@@ -454,6 +465,8 @@ export function probe() {
   const sideScrollers = all.filter((el) => { if (el.closest('[data-ui], table, pre, code')) return false; const cs = getComputedStyle(el); return /auto|scroll/.test(cs.overflowX) && el.scrollWidth > el.clientWidth + 24 && el.clientHeight > 40; }).length;
   const blendText = texts.filter((t) => { for (let p = t.el, i = 0; p && p !== document.body && i < 6; p = p.parentElement, i++) if (/difference|exclusion/.test(getComputedStyle(p).mixBlendMode)) return true; return false; }).length;
   const bodyText = document.body.innerText || '';
+  const words = bodyText.split(/\s+/).filter(Boolean).length;
+  const canvasArt = realPictures === 0 && uiPictures === 0 && heroMedia.some((m) => m.type === 'canvas' && m.ratio >= 0.25) && words <= 450;
   const emoji = (bodyText.match(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu) || []);
   const doc = document.documentElement; const pageH = Math.max(doc.scrollHeight, document.body.scrollHeight);
   const headingStats = headings.map(({ _el, ...h }) => h);
@@ -462,9 +475,9 @@ export function probe() {
 
   return {
     viewport: { w: W, h: H },
-    page: { height: pageH, screens: round(pageH / H, 1), words: bodyText.split(/\s+/).filter(Boolean).length,
+    page: { height: pageH, screens: round(pageH / H, 1), words,
       img: document.images.length, video: document.querySelectorAll('video').length, canvas: document.querySelectorAll('canvas').length, svg: document.querySelectorAll('svg').length, sections: document.querySelectorAll('section').length,
-      horizontalOverflow: doc.scrollWidth > W + 2 ? doc.scrollWidth - W : 0, overflowCulprits, uiFragments, uiAbuse, realPictures, videoCount, uiPictures, pictureSamples, blendText, sideScrollers, brokenImages, onSaturatedGround, emoji: [...new Set(emoji)].slice(0, 10) },
+      horizontalOverflow: doc.scrollWidth > W + 2 ? doc.scrollWidth - W : 0, overflowCulprits, uiFragments, uiAbuse, realPictures, videoCount, uiPictures, pictureSamples, canvasArt, blendText, sideScrollers, brokenImages, onSaturatedGround, emoji: [...new Set(emoji)].slice(0, 10) },
     hero: heroOut, h1,
     headings: headingStats.slice(0, 40),
     headingSummary: { count: headingStats.length, maxLines: Math.max(0, ...headingStats.map((h) => h.lines)), over2Lines: headingStats.filter((h) => h.lines > 2 && h.kind !== 'statement').length, statements: headingStats.filter((h) => h.kind === 'statement').length, centered: headingStats.filter((h) => h.align === 'center').length, medianWords: below.length ? below.map((h) => h.words).sort((a, b) => a - b)[Math.floor(below.length / 2)] : null, mixedFontHeadings: headingStats.filter((h) => h.mixedFonts).length },
@@ -515,11 +528,17 @@ export function frame() {
     }
     return false;
   };
-  const pictures = [...document.querySelectorAll('img, picture, svg, canvas, video')].filter((m) => !m.parentElement?.closest('svg')).map((m) => ({ m, r: m.getBoundingClientRect() })).filter(({ r }) => r.width >= 80 && r.height >= 80 && r.bottom > 0 && r.top < H);
+  const isHidden = (el) => {
+    if (typeof el.checkVisibility === 'function' && !el.checkVisibility({ checkVisibilityCSS: true })) return true;
+    const d = el.closest('details:not([open])');
+    if (d && d !== el) { const sum = d.querySelector(':scope > summary'); if (!sum || !sum.contains(el)) return true; }
+    return false;
+  };
+  const pictures = [...document.querySelectorAll('img, picture, svg, canvas, video')].filter((m) => !m.parentElement?.closest('svg') && !isHidden(m)).map((m) => ({ m, r: m.getBoundingClientRect() })).filter(({ r }) => r.width >= 80 && r.height >= 80 && r.bottom > 0 && r.top < H);
   for (const el of document.querySelectorAll('h1, h2, h3, h4, h5, h6, p, blockquote, li, a, button, span, div')) {
     let direct = ''; for (const n of el.childNodes) if (n.nodeType === 3) direct += n.nodeValue;
     if (direct.trim().length < 3) continue;
-    const cs = getComputedStyle(el); const size = parseFloat(cs.fontSize); if (size < 24 || cs.visibility === 'hidden' || +cs.opacity < 0.3) continue;
+    const cs = getComputedStyle(el); const size = parseFloat(cs.fontSize); if (size < 24 || cs.visibility === 'hidden' || +cs.opacity < 0.3 || isHidden(el)) continue;
     let srOnly = false;
     for (let p = el, i = 0; p && p !== document.body && i < 4; p = p.parentElement, i++) { const pcs = getComputedStyle(p); const pr = p.getBoundingClientRect(); if (pcs.clip === 'rect(0px, 0px, 0px, 0px)' || /inset\(50%\)/.test(pcs.clipPath) || (pr.width <= 2 && pr.height <= 2 && pcs.overflow !== 'visible')) { srOnly = true; break; } }
     if (srOnly) continue;
@@ -558,7 +577,7 @@ export function frame() {
   const textRects = [];
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT); const rg = document.createRange();
   for (let n = walker.nextNode(); n; n = walker.nextNode()) {
-    if (!n.nodeValue.trim() || !n.parentElement) continue; const pcs = getComputedStyle(n.parentElement); if (pcs.visibility === 'hidden' || +pcs.opacity < 0.2) continue;
+    if (!n.nodeValue.trim() || !n.parentElement || isHidden(n.parentElement)) continue; const pcs = getComputedStyle(n.parentElement); if (pcs.visibility === 'hidden' || +pcs.opacity < 0.2) continue;
     rg.selectNodeContents(n); for (const r of rg.getClientRects()) if (r.bottom > 0 && r.top < H && r.width > 1) textRects.push(r);
   }
   let filled = 0, samples = 0;

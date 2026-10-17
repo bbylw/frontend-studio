@@ -9,21 +9,49 @@
 // floats — and keeps banning the rest. The list and its reasoning: references/product-surfaces.md §5.
 //
 // Exit code 1 when any FAIL is found. Zero dependencies.
-import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { join, extname, relative, resolve } from 'node:path';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { dirname, join, extname, relative, resolve } from 'node:path';
 
 const args = process.argv.slice(2);
 if (args.includes('-h') || args.includes('--help')) {
-  console.log('usage: node lint.mjs [files or directories ...] [--surface page|product] [--json]');
+  console.log('usage: node lint.mjs [files or directories ...] [--surface page|product|art] [--allow rule,rule] [--json]');
   process.exit(0);
 }
 const asJson = args.includes('--json');
 const surfaceAt = args.indexOf('--surface');
+const allowAt = args.indexOf('--allow');
 // -1 means the flag is absent. `surfaceAt + 1` would then be 0, which is a real path argument: the
 // guard below is only applied when the flag is actually present, or the first path is silently dropped.
-const surface = surfaceAt !== -1 && String(args[surfaceAt + 1] || '').toLowerCase() === 'product' ? 'product' : 'page';
-const roots = args.filter((a, i) => !a.startsWith('--') && (surfaceAt === -1 || i !== surfaceAt + 1));
+const flagValueIndices = new Set([
+  ...(surfaceAt !== -1 ? [surfaceAt, surfaceAt + 1] : []),
+  ...(allowAt !== -1 ? [allowAt, allowAt + 1] : []),
+]);
+const roots = args.filter((a, i) => !a.startsWith('--') && !flagValueIndices.has(i));
 if (!roots.length) roots.push('.');
+
+let savedSheet = null;
+const sheetCandidates = [
+  ...roots.flatMap((r) => {
+    const p = resolve(r);
+    return [join(p, '.frontend-studio', 'direction.json'), join(dirname(p), '.frontend-studio', 'direction.json')];
+  }),
+  join(process.cwd(), '.frontend-studio', 'direction.json'),
+];
+for (const p of sheetCandidates) {
+  if (existsSync(p)) {
+    try { savedSheet = JSON.parse(readFileSync(p, 'utf8')); break; } catch {}
+  }
+}
+const sheetSurface = savedSheet?.surface || savedSheet?.input?.surface || (savedSheet?.direction?.id === 'generative-art' ? 'art' : null);
+const surfaceArg = surfaceAt !== -1 ? String(args[surfaceAt + 1] || '').toLowerCase() : '';
+const surface = ['product', 'art', 'page'].includes(surfaceArg)
+  ? surfaceArg
+  : ['product', 'art', 'page'].includes(sheetSurface)
+    ? sheetSurface
+    : 'page';
+const allowArg = allowAt !== -1 ? String(args[allowAt + 1] || '').split(',').map((s) => s.trim()).filter(Boolean) : [];
+const allow = new Set([...allowArg, ...(Array.isArray(savedSheet?.allow) ? savedSheet.allow : [])]);
+
 const EXT = new Set(['.html', '.htm', '.css', '.scss', '.less', '.js', '.jsx', '.ts', '.tsx', '.vue', '.svelte', '.astro', '.mdx']);
 const SKIP = new Set(['node_modules', '.git', '.next', '.nuxt', '.svelte-kit', 'dist', 'build', 'out', '.vercel', '.frontend-studio', 'coverage', '.turbo', 'vendor']);
 
@@ -78,7 +106,12 @@ for (const file of files) {
   let inCode = false; let selector = ''; let pending = '';
   lines.forEach((line, i) => {
     // track the CSS selector we are inside, so rules scoped to [data-ui] (interface fragments) keep their own lines
-    if (line.includes('{')) { selector = pending + line.slice(0, line.indexOf('{')); pending = ''; } else if (!line.includes('}')) pending = (pending + ' ' + line).slice(-300);
+    if (line.includes('{')) {
+      const openAt = line.lastIndexOf('{');
+      const closeBefore = line.lastIndexOf('}', openAt);
+      selector = (closeBefore === -1 ? pending : '') + line.slice(closeBefore + 1, openAt);
+      pending = '';
+    } else if (!line.includes('}')) pending = (pending + ' ' + line).slice(-300);
     const inUi = /data-ui/.test(selector) || /data-ui/.test(line);
     if (/<(pre|code)\b/i.test(line)) inCode = true;
     const codeLine = inCode || /<(pre|code|kbd|samp)\b/i.test(line);
@@ -86,6 +119,7 @@ for (const file of files) {
     if (line.length <= 2000 && !/fs-ignore/.test(line)) {
       if (!/^\s*(\/\/|\/\*|\*|<!--)/.test(line)) emDashes += (line.replace(/\/\/.*$|\/\*.*?\*\/|<!--.*?-->/g, '').match(/—/g) || []).length; // comments are not copy
       for (const [level, id, re, message] of R) {
+        if (allow.has(id)) continue;
         if (id === 'mono' && (codeLine || /(^|[\s,>+~(])(pre|code|kbd|samp)\b|code/i.test(selector))) continue; // real code may be monospace
         if ((id === 'hairline' || id === 'outlined-box') && /(^|[\s,>+~(])(table|thead|tbody|tfoot|tr|td|th|input|textarea|select|fieldset)\b/i.test(selector)) continue; // real tables and form fields keep their lines
         if (inUi && (id === 'hairline' || id === 'outlined-box' || id === 'shadow')) continue;
@@ -95,10 +129,10 @@ for (const file of files) {
         if (m) findings.push({ level: RELAXED.has(id) && level === 'FAIL' ? 'WARN' : level, id, file: rel, line: i + 1, match: m[0].trim().slice(0, 70), message: RELAXED.has(id) ? message + ' Tolerated in product mode while it stays in its documented role.' : message });
       }
     }
-    if (line.includes('}')) { selector = ''; pending = ''; }
+    if (line.lastIndexOf('}') > line.lastIndexOf('{')) { selector = ''; pending = ''; }
   });
 }
-if (emDashes > 4) findings.push({ level: 'WARN', id: 'em-dash', file: '(all files)', line: 0, match: `${emDashes} em dashes`, message: 'Em-dash habit. Use a full stop or a comma; keep at most one or two on a page.' });
+if (emDashes > 4 && !allow.has('em-dash')) findings.push({ level: 'WARN', id: 'em-dash', file: '(all files)', line: 0, match: `${emDashes} em dashes`, message: 'Em-dash habit. Use a full stop or a comma; keep at most one or two on a page.' });
 
 if (asJson) { console.log(JSON.stringify({ files: files.length, findings }, null, 1)); process.exit(findings.some((f) => f.level === 'FAIL') ? 1 : 0); }
 

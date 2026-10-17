@@ -23,21 +23,32 @@ const flag = (name, def) => { const i = args.indexOf('--' + name); if (i === -1)
 const has = (name) => { const i = args.indexOf('--' + name); if (i === -1) return false; args.splice(i, 1); return true; };
 const outDir = resolve(flag('out', '.frontend-studio/inspect'));
 const widths = flag('widths', '1440,768,390').split(',').map(Number).filter(Boolean);
+const maxScreens = Math.max(1, Number(flag('max-screens', '20')) || 20);
 let allow = flag('allow', '').split(',').filter(Boolean);
 const surfaceArg = String(flag('surface', '') || '').toLowerCase();
 const asJson = has('json');
 const target = args[0];
 if (!target || target === '-h' || target.startsWith('--')) {
-  console.error('usage: node inspect.mjs <url | file.html> [--out DIR] [--widths 1440,768,390] [--surface page|product] [--allow rule,rule] [--json]');
+  console.error('usage: node inspect.mjs <url | file.html> [--out DIR] [--widths 1440,768,390] [--surface page|product|art] [--allow rule,rule] [--json]');
   process.exit(2);
 }
 // Allowances granted by the drawn direction (written by draw.mjs) apply automatically, and the surface
 // mode is read from the same sheet unless it was passed explicitly.
 let savedSheet = null;
-for (const p of ['.frontend-studio/direction.json', join(outDir, '..', 'direction.json')]) {
+const sheetCandidates = [
+  ...(!/^https?:\/\//.test(target) ? [join(resolve(target), '.frontend-studio', 'direction.json'), join(dirname(resolve(target)), '.frontend-studio', 'direction.json')] : []),
+  '.frontend-studio/direction.json',
+  join(outDir, '..', 'direction.json'),
+];
+for (const p of sheetCandidates) {
   if (existsSync(p)) { try { savedSheet = JSON.parse(readFileSync(p, 'utf8')); allow = [...new Set([...allow, ...(savedSheet.allow || [])])]; } catch {} break; }
 }
-const surface = surfaceArg ? (surfaceArg === 'product' ? 'product' : 'page') : (savedSheet?.surface || savedSheet?.input?.surface || 'page');
+const sheetSurface = savedSheet?.surface || savedSheet?.input?.surface || (savedSheet?.direction?.id === 'generative-art' ? 'art' : null);
+const surface = ['product', 'art', 'page'].includes(surfaceArg)
+  ? surfaceArg
+  : ['product', 'art', 'page'].includes(sheetSurface)
+    ? sheetSurface
+    : 'page';
 // A working interface moves less than a marketing page but never stands still: state transitions and
 // control feedback still have to happen.
 const MOTION_MIN = surface === 'product' ? 4 : 8, MOTION_GOOD = surface === 'product' ? 8 : 16;
@@ -46,8 +57,10 @@ const MOTION_MIN = surface === 'product' ? 4 : 8, MOTION_GOOD = surface === 'pro
 // assets, fetch() and module scripts behave as they will when the page is hosted.
 let url = target; let server = null;
 if (!/^https?:\/\//.test(target)) {
-  const file = resolve(target);
+  let file = resolve(target);
   if (!existsSync(file)) { console.error('No such file: ' + file); process.exit(2); }
+  if (statSync(file).isDirectory()) file = join(file, 'index.html');
+  if (!existsSync(file)) { console.error('No index.html in directory: ' + resolve(target)); process.exit(2); }
   const cwd = resolve('.');
   const root = file.startsWith(cwd + sep) ? cwd : dirname(file);
   const MIME = { '.html': 'text/html; charset=utf-8', '.htm': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.avif': 'image/avif', '.gif': 'image/gif', '.ico': 'image/x-icon', '.woff': 'font/woff', '.woff2': 'font/woff2', '.ttf': 'font/ttf', '.otf': 'font/otf', '.mp4': 'video/mp4', '.webm': 'video/webm', '.txt': 'text/plain; charset=utf-8', '.xml': 'application/xml', '.webmanifest': 'application/manifest+json' };
@@ -76,18 +89,40 @@ const report = { url: server ? target : url, at: new Date().toISOString(), surfa
 // MOTION_MIN / MOTION_GOOD are set above, from the surface mode (distinct moving elements over the
 // load and one scroll through the page).
 // Runs in the page before any of its own scripts: counts the distinct elements that actually move while
-// the page loads and is scrolled (CSS animations, CSS transitions, Web Animations, and script-driven
-// transform/opacity changes such as GSAP), so a page that never moves can be told from one that does.
+// the page loads and is scrolled (CSS animations, CSS transitions, Web Animations, script-driven
+// transform/opacity changes such as GSAP, and requestAnimationFrame-driven <canvas> works), so a page
+// that never moves can be told from one that does.
 const MOTION_RECORDER = `(() => {
-  const seen = new WeakSet(); const c = { elements: 0, css: 0, transitions: 0, scripted: 0 };
-  const note = (t, k) => { if (!(t instanceof Element) || seen.has(t)) return; seen.add(t); c.elements++; c[k]++; };
+  const seen = new WeakSet(); const c = { elements: 0, css: 0, transitions: 0, scripted: 0, canvas: 0 };
+  let rafTicks = 0;
+  const origRaf = window.requestAnimationFrame;
+  if (typeof origRaf === 'function') {
+    window.requestAnimationFrame = function(cb) {
+      return origRaf.call(this, function(ts) { rafTicks++; return cb(ts); });
+    };
+  }
+  const note = (t, k) => { if (!(t instanceof Element) || seen.has(t)) return; seen.add(t); c.elements++; c[k] = (c[k] || 0) + 1; };
   addEventListener('animationstart', (e) => note(e.target, 'css'), true);
   addEventListener('transitionrun', (e) => note(e.target, 'transitions'), true);
   const watch = () => new MutationObserver((list) => { for (const m of list) { const s = m.target.getAttribute && m.target.getAttribute('style') || ''; if (/transform|translate|opacity|scale|rotate|clip-path/.test(s)) note(m.target, 'scripted'); } })
     .observe(document.documentElement, { attributes: true, attributeFilter: ['style'], subtree: true });
   if (document.documentElement) watch(); else addEventListener('DOMContentLoaded', watch);
-  window.__motionSample = () => { for (const a of document.getAnimations ? document.getAnimations() : []) { const t = a.effect && a.effect.target; if (t) note(t, a.constructor && a.constructor.name === 'CSSTransition' ? 'transitions' : 'css'); } };
-  window.__motion = () => { window.__motionSample(); const v = [...document.querySelectorAll('video')]; return { ...c, videos: v.length, playingVideos: v.filter((x) => x.autoplay || !x.paused).length }; };
+  window.__motionSample = () => {
+    for (const a of document.getAnimations ? document.getAnimations() : []) { const t = a.effect && a.effect.target; if (t) note(t, a.constructor && a.constructor.name === 'CSSTransition' ? 'transitions' : 'css'); }
+    if (rafTicks >= 3) {
+      for (const cv of document.querySelectorAll('canvas')) {
+        const r = cv.getBoundingClientRect();
+        if (r.width >= 40 && r.height >= 40) note(cv, 'canvas');
+      }
+    }
+  };
+  window.__motion = () => {
+    window.__motionSample();
+    const v = [...document.querySelectorAll('video')];
+    const cvs = [...document.querySelectorAll('canvas')].filter((x) => { const r = x.getBoundingClientRect(); return r.width >= 40 && r.height >= 40; });
+    const playingCanvases = rafTicks >= 3 ? cvs.length : 0;
+    return { ...c, rafTicks, videos: v.length, playingVideos: v.filter((x) => x.autoplay || !x.paused).length, playingCanvases };
+  };
 })();`;
 
 async function sheet(frames, cols, cellW, cellH, path) {
@@ -117,7 +152,8 @@ try {
     // walk the page one screen at a time so scroll reveals fire, photographing each screen
     const frames = [readFileSync(fold).toString('base64')];
     const frameChecks = [await page.eval(frame).catch(() => null)];
-    const screens = Math.min(11, Math.max(0, Math.ceil(metrics.page.height / h) - 1));
+    const total = Math.max(1, Math.ceil(metrics.page.height / h));
+    const screens = Math.min(maxScreens - 1, Math.max(0, total - 1));
     for (let i = 1; i <= screens; i++) {
       await page.eval(`window.scrollTo({ top: ${i * h}, behavior: 'instant' })`).catch(() => {});
       await page.wheel(2);
@@ -132,6 +168,10 @@ try {
     await sleep(350);
     const after = await page.eval(probe).catch(() => metrics);
     const m = after.headings.length >= metrics.headings.length ? after : metrics;
+    if (after.page?.realPictures > m.page?.realPictures) {
+      m.page.realPictures = after.page.realPictures;
+      m.page.pictureSamples = after.page.pictureSamples;
+    }
 
     const cols = w >= 1100 ? 2 : w >= 600 ? 3 : 4;
     const cellW = w >= 1100 ? 800 : w >= 600 ? 512 : 390;
@@ -144,6 +184,9 @@ try {
       sheets.push(p);
     }
     const findings = judge(m, { width: w, allow, surface });
+    if (frames.length < total && !allow.includes('unphotographed-screens')) {
+      findings.push({ level: 'WARN', id: 'unphotographed-screens', width: w, message: `${frames.length} of ${total} screens photographed (${total - frames.length} screen(s) at the bottom of the page were beyond the capture limit of ${maxScreens}).`, fix: 'Pass a higher `--max-screens <n>` to inspect.mjs so the bottom of the page and the footer appear in the contact sheets, or shorten the page.' });
+    }
     // what only shows up while scrolling: text hidden under something, and screens with almost nothing on them
     const coveredText = [...new Map(frameChecks.filter(Boolean).flatMap((f, i) => f.covered.map((c) => [c.text, { ...c, screen: i + 1 }]))).values()];
     if (coveredText.length && !allow.includes('covered-text')) findings.push({ level: 'FAIL', id: 'covered-text', width: w, message: `Large text lies under another element at some scroll position: ` + coveredText.slice(0, 4).map((c) => `"${c.text}" (screen ${c.screen}, ${Math.round(c.share * 100)}% hidden)`).join('; '), fix: 'Nothing may sit on top of a headline or statement. Move the picture, shorten the pinned run, or raise the text above it (z-index) and give it a ground.' });
@@ -158,13 +201,15 @@ try {
     const longPins = [...runs.entries()].filter(([, r]) => r.best >= 3);
     if (w >= 1100 && longPins.length && !allow.includes('long-pin')) findings.push({ level: 'WARN', id: 'long-pin', width: w, message: `The same large text stays on screen for ${Math.max(...longPins.map(([, r]) => r.best))} screens in a row: ` + longPins.slice(0, 2).map(([t]) => `"${t}"`).join('; '), fix: 'A pinned element earns two screens, and something must change at each. Shorten the run or give every screen its own content.' });
     // a page that barely moves: counted from what really animated while it loaded and was scrolled
-    if (w >= 1100 && motion && !allow.includes('still-page')) {
-      const moving = motion.elements + motion.playingVideos * 4;
-      if (moving < MOTION_MIN) findings.push({ level: 'FAIL', id: 'still-page', width: w, message: `Only ${motion.elements} element(s) moved while the page loaded and scrolled${motion.playingVideos ? ` (plus ${motion.playingVideos} playing video)` : ''}.`, fix: 'Build the motion layer (SKILL.md step 9, references/motion.md): the signature move, an entrance for the parts of every section, feedback on every control, and one moving picture. Transform and opacity only, with a reduced-motion fallback.' });
-      else if (moving < MOTION_GOOD) findings.push({ level: 'WARN', id: 'still-page', width: w, message: `Little motion: ${motion.elements} element(s) moved while the page loaded and scrolled.`, fix: 'Give every section an entrance for its parts (not one fade of the whole block) and add one moving picture: a looping clip or a slow move on a photograph.' });
+    const isArt = surface === 'art' || Boolean(m.page.canvasArt);
+    if (w >= 1100 && motion && !isArt && !allow.includes('still-page')) {
+      const moving = motion.elements + motion.playingVideos * 4 + (motion.playingCanvases || 0) * (m.page.sections === 0 ? MOTION_GOOD : 8);
+      const canvasNote = motion.playingCanvases ? ` (plus ${motion.playingCanvases} animated canvas)` : '';
+      if (moving < MOTION_MIN) findings.push({ level: 'FAIL', id: 'still-page', width: w, message: `Only ${motion.elements} element(s) moved while the page loaded and scrolled${motion.playingVideos ? ` (plus ${motion.playingVideos} playing video)` : ''}${canvasNote}.`, fix: 'Build the motion layer (SKILL.md step 9, references/motion.md): the signature move, an entrance for the parts of every section, feedback on every control, and one moving picture. Transform and opacity only, with a reduced-motion fallback.' });
+      else if (moving < MOTION_GOOD) findings.push({ level: 'WARN', id: 'still-page', width: w, message: `Little motion: ${motion.elements} element(s) moved while the page loaded and scrolled${canvasNote}.`, fix: 'Give every section an entrance for its parts (not one fade of the whole block) and add one moving picture: a looping clip or a slow move on a photograph.' });
     }
-    if (w >= 1100 && surface === 'page' && empty.length >= 2 && !allow.includes('empty-screens')) findings.push({ level: 'FAIL', id: 'empty-screens', width: w, message: `${empty.length} of ${frameChecks.length} desktop screens are almost empty ground (under 20% of the screen holds text, a picture or a colour field): screens ${empty.map(({ i }) => i + 1).join(', ')}.`, fix: 'An empty screen is a rest only once per page. Elsewhere it means the section is underbuilt: set its content larger, give it the full information, put it on a colour field, or cut it.' });
-    report.viewports.push({ width: w, height: h, load: how, screens: frames.length, filled: frameChecks.map((f) => f?.filled ?? null), motion, metrics: m, consoleErrors: page.consoleErrors.slice(0, 5) });
+    if (w >= 1100 && surface === 'page' && !isArt && empty.length >= 2 && !allow.includes('empty-screens')) findings.push({ level: 'FAIL', id: 'empty-screens', width: w, message: `${empty.length} of ${frameChecks.length} desktop screens are almost empty ground (under 20% of the screen holds text, a picture or a colour field): screens ${empty.map(({ i }) => i + 1).join(', ')}.`, fix: 'An empty screen is a rest only once per page. Elsewhere it means the section is underbuilt: set its content larger, give it the full information, put it on a colour field, or cut it.' });
+    report.viewports.push({ width: w, height: h, load: how, screens: frames.length, totalScreens: total, filled: frameChecks.map((f) => f?.filled ?? null), motion, metrics: m, consoleErrors: page.consoleErrors.slice(0, 5) });
     report.findings.push(...findings);
     report.images.push({ viewport: label, width: w, fold, pages: sheets });
     await page.close();
@@ -186,19 +231,23 @@ writeFileSync(join(outDir, 'report.json'), JSON.stringify(report, null, 1));
 
 if (asJson) { console.log(JSON.stringify(report, null, 1)); process.exit(merged.some((f) => f.level === 'FAIL') ? 1 : 0); }
 
-const d = report.viewports[0].metrics;
+const v0 = report.viewports[0];
+const d = v0.metrics;
+const total = v0.totalScreens || Math.max(1, Math.ceil(d.page.height / v0.height));
 const line = (s = '') => console.log(s);
 line(`FRONTEND-STUDIO · INSPECT   ${report.url}   [surface ${surface}]`);
 line('');
 line(surface === 'product'
   ? 'MEASURED (first viewport listed) — product mode: tables and lists may keep their rules, data may be monospaced, ranks and counts may be numbered, floating surfaces may cast a shadow (references/product-surfaces.md §5)'
-  : 'MEASURED (first viewport listed)');
+  : surface === 'art' || d.page.canvasArt
+    ? 'MEASURED (first viewport listed) — generative / visual art mode: canvas artwork is the primary medium (references/visual-art.md)'
+    : 'MEASURED (first viewport listed)');
 if (d.hero) line(`  hero headline   "${d.hero.text.slice(0, 70)}"  ${d.hero.words} words · ${d.hero.lines} line(s) · ${d.hero.size}px (${d.hero.vw}vw) · ${d.hero.font} ${d.hero.weight} · tracking ${d.hero.tracking}em · leading ${d.hero.leading}`);
 for (const v of report.viewports.slice(1)) if (v.metrics.hero) line(`  @${v.width}px          ${v.metrics.hero.lines} line(s) · ${v.metrics.hero.size}px`);
-line(`  typefaces       ${d.type.families.filter((f) => f.share >= 0.02).map((f) => `${f.family} ${Math.round(f.share * 100)}%`).join(', ')}`);
+line(`  typefaces       ${d.type.families.filter((f) => f.share >= 0.02).map((f) => `${f.family} ${Math.round(f.share * 0.01 * 10000)}%`).join(', ')}`);
 line(`  sizes in use    ${d.type.sizes.join(' / ')} px${d.type.body ? `   body ${d.type.body.size}px / ${d.type.body.leading}` : ''}`);
 line(`  colour          page ${d.color.bodyBg}${d.color.sectionBgs.length ? ' · sections ' + d.color.sectionBgs.map((s) => s.color).slice(0, 6).join(' ') : ''}${d.color.button ? ' · button ' + d.color.button.bg : ''}`);
-line(`  page            ${d.page.screens} screens · ${d.page.words} words · ${d.page.img} images · hero media ${d.heroMedia[0] ? Math.round(d.heroMedia[0].ratio * 100) + '% ' + d.heroMedia[0].type : 'none'}`);
+line(`  page            ${d.page.screens} screens (${v0.screens} of ${total} screens photographed) · ${d.page.words} words · ${d.page.img} images · hero media ${d.heroMedia[0] ? Math.round(d.heroMedia[0].ratio * 100) + '% ' + d.heroMedia[0].type : 'none'}`);
 line(`  headings        ${d.headingSummary.count} · longest ${d.headingSummary.maxLines} line(s) · median ${d.headingSummary.medianWords ?? '-'} words`);
 line('');
 const fails = merged.filter((f) => f.level === 'FAIL'), warns = merged.filter((f) => f.level === 'WARN');

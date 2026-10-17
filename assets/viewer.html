@@ -47,7 +47,7 @@
             --font-text: "Archivo", "Helvetica Neue", Arial, sans-serif;
 
             --step-small: 0.8125rem;   /* 13px floor */
-            --step-body: 0.9375rem;
+            --step-body: 1rem;         /* 16px — passes page and product body-size floor */
             --step-lead: 1.25rem;
             --step-head: 1.5rem;
 
@@ -105,8 +105,8 @@
         }
 
         .sidebar .subtitle {
-            color: var(--muted);
-            font-size: var(--step-small);
+            color: var(--ink);
+            font-size: var(--step-body);
             line-height: 1.45;
             margin-bottom: 28px;
         }
@@ -253,6 +253,7 @@
 
         @media (max-width: 700px) {
             .container { flex-direction: column; }
+            .canvas-area { order: -1; width: 100%; }
             .sidebar { width: 100%; flex: 1 1 auto; position: static; max-height: none; }
         }
 
@@ -263,10 +264,10 @@
 </head>
 <body>
     <div class="container">
-        <div class="sidebar">
+        <aside class="sidebar" aria-label="Controls">
             <!-- Replace both lines with the work's own title and one-line description. -->
             <h1>Title of the work</h1>
-            <div class="subtitle">One line on what it is and how it is made.</div>
+            <p class="subtitle">One line on what it is and how it is made.</p>
 
             <!-- Seed section: always keep. This is what makes the piece explorable. -->
             <div class="control-section">
@@ -359,13 +360,13 @@
                     <button class="button secondary" type="button" onclick="resetParameters()">Reset</button>
                 </div>
             </div>
-        </div>
+        </aside>
 
-        <div class="canvas-area">
+        <main class="canvas-area">
             <div id="canvas-container">
                 <div class="loading">Drawing…</div>
             </div>
-        </div>
+        </main>
     </div>
 
     <script>

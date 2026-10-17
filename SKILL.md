@@ -474,7 +474,9 @@ composition, its own states, and a demonstration on realistic content rather tha
 **Generative or visual art (posters, print, explorable canvas).** This is its own workflow, in
 `references/visual-art.md`: name the movement, draw the conceptual seed, then create either a static piece
 (PDF/PNG) or a seeded interactive one on the `assets/viewer.html` template. The house rules apply to the
-typography and colour of the piece, not to its medium.
+typography and colour of the piece, not to its medium (`inspect.mjs` and `lint.mjs` accept `--surface art`
+and automatically recognise a self-contained `<canvas>` viewer, counting `requestAnimationFrame` canvas
+drawing in the motion check and exempting it from the external photo/video floor).
 
 **No checkout, no form backend.** The primary button goes to the real destination when the brief names one.
 Otherwise it opens an email with a written subject and body (`mailto:` with the visitor's choices filled
