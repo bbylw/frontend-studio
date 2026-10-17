@@ -162,8 +162,11 @@ function text(v) {
     .replace(/\s+/g, ' ').trim();
 }
 function keyOf(u) { let s = noQuery(u) || ''; try { s = decodeURIComponent(s); } catch {} return s.toLowerCase().replace(/^https?:\/\//, '').replace(/ /g, '_'); }
+function stripKnownExt(s) {
+  return String(s || '').replace(/\.(jpe?g|png|webp|gif|avif|svg|mp4|webm|mov|ogv)$/i, '');
+}
 function slug(s) {
-  return String(s || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+  return stripKnownExt(s).normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
     .split('-').slice(0, 7).join('-').slice(0, 60).replace(/-+$/, '');
 }
 // The words of a query that carry meaning, and whether a record's own description holds them

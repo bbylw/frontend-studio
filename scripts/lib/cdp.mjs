@@ -2,7 +2,7 @@
 // Drives an installed Chrome / Edge / Chromium in headless mode over Node's built-in WebSocket.
 // Requires Node 22+. No npm install.
 import { spawn } from 'node:child_process';
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -34,6 +34,22 @@ export function findChrome() {
     '/usr/bin/chromium-browser', '/snap/bin/chromium', '/usr/bin/microsoft-edge',
   ];
   for (const c of candidates) if (c && existsSync(c)) return c;
+  // Playwright browser caches (/ms-playwright or ~/.cache/ms-playwright)
+  for (const root of ['/ms-playwright', join(home, '.cache/ms-playwright')]) {
+    try {
+      if (!existsSync(root)) continue;
+      for (const d of readdirSync(root).sort().reverse()) {
+        for (const sub of [
+          'chrome-linux/chrome',
+          'chrome-linux64/chrome',
+          'chrome-headless-shell-linux64/chrome-headless-shell',
+        ]) {
+          const p = join(root, d, sub);
+          if (existsSync(p)) return p;
+        }
+      }
+    } catch {}
+  }
   return null;
 }
 
@@ -47,8 +63,10 @@ export class Browser {
       throw new Error('No Chrome/Edge/Chromium found. Install one or set CHROME_PATH to its executable.');
     }
     const dir = mkdtempSync(join(tmpdir(), 'ad-chrome-'));
+    const headlessArg = exe.includes('chrome-headless-shell') ? '--headless' : '--headless=new';
     const args = [
-      '--headless=new', '--remote-debugging-port=0', `--user-data-dir=${dir}`,
+      headlessArg, '--remote-debugging-port=0', `--user-data-dir=${dir}`,
+      '--no-sandbox', '--disable-dev-shm-usage',
       '--no-first-run', '--no-default-browser-check', '--mute-audio', '--hide-scrollbars',
       '--disable-background-timer-throttling', '--disable-renderer-backgrounding',
       '--disable-backgrounding-occluded-windows', '--disable-features=Translate,MediaRouter',
