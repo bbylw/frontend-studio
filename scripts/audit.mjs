@@ -24,16 +24,22 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { dirname, join, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { colourFamily } from './lib/rules.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const LIB = resolve(here, '..', 'library');
 const read = (n) => JSON.parse(readFileSync(join(LIB, n), 'utf8'));
 
 const args = process.argv.slice(2);
+if (args.includes('-h') || args.includes('--help')) {
+  console.log('usage: node audit.mjs [--json] [--quiet]');
+  process.exit(0);
+}
 const asJson = args.includes('--json');
 const quiet = args.includes('--quiet');
 
 // ---- colour maths, the same definitions lint.mjs and inspect.mjs use so the three agree
+const round = (n, d = 2) => Math.round(n * 10 ** d) / 10 ** d;
 const hex = (h) => { const n = parseInt(String(h).replace('#', ''), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
 const lin = (c) => { c /= 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
 const lum = (h) => { const [r, g, b] = hex(h).map(lin); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
@@ -41,6 +47,12 @@ const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
 const sat = (h) => { const [r, g, b] = hex(h).map((v) => v / 255); const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2;
   return mx === mn ? 0 : l > 0.5 ? (mx - mn) / (2 - mx - mn) : (mx - mn) / (mx + mn); };
 const light = (h) => { const [r, g, b] = hex(h).map((v) => v / 255); return (Math.max(r, g, b) + Math.min(r, g, b)) / 2; };
+const hexToHsl = (hStr) => {
+  const [r, g, b] = hex(hStr).map((v) => v / 255);
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2; let h = 0, s = 0;
+  if (mx !== mn) { const d = mx - mn; s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn); h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h *= 60; }
+  return { h: Math.round(h), s: round(s), l: round(l) };
+};
 // a ground that is both saturated and mid-tone is the one photographs fight
 const saturatedGround = (h) => sat(h) >= 0.22 && light(h) >= 0.22 && light(h) <= 0.78;
 
@@ -85,6 +97,11 @@ for (const p of P) {
     const c = ratio(f.ink, f.bg);
     if (c < 4.5) add('FAIL', 'legibility', at, `field ${i + 1} ink ${f.ink} on ${f.bg} is ${c.toFixed(2)}:1, below 4.5:1`, 'A field is a whole section. Its type must be readable at size.');
   });
+  for (const [role, val] of [['bg', p.bg], ['surface', p.surface], ['accent', p.accent], ...(p.fields || []).map((f, i) => [`field-${i + 1}.bg`, f.bg])]) {
+    if (!val) continue;
+    const fam = colourFamily(hexToHsl(val));
+    if (fam) add('FAIL', 'banned-colour', at, `${role} ${val} falls inside the "${fam}" colour family flagged by inspect.mjs`, 'Shift the hue, saturation or lightness so the library never deals a colour that inspect.mjs flags.');
+  }
   if (saturatedGround(p.bg)) {
     if (!p.pictures) add('FAIL', 'mud', at, `ground ${p.bg} is a saturated mid-tone (${Math.round(sat(p.bg) * 100)}% saturation, ${Math.round(light(p.bg) * 100)}% light) and the palette says nothing about where pictures go`, 'Add a `pictures` line naming a neutral field, and add at least one neutral field for it to name. A photograph laid straight on this ground reads as mud.');
     else {
@@ -112,6 +129,10 @@ for (const t of T) {
     if (!v.weights?.length) add('WARN', 'type-shape', at, `${role}.weights is empty`, 'The draw cannot tell you what to request.');
     if (!v.settings) add('WARN', 'type-shape', at, `${role}.settings is missing`, 'Settings are the reason to pick this system over another in the same class.');
     if (!v.css || !LINK_OK.test(v.css)) add('FAIL', 'font-link', at, `${role}.css is not a well-formed Google Fonts or Fontshare stylesheet link`, 'One <link> per face, on the preconnect host that serves it. A broken link means the reader sees a fallback and believes the design is that fallback.');
+  }
+  const cssHrefs = [...new Set([t.display?.css, t.text?.css].filter(Boolean).flatMap((c) => [...c.matchAll(/href="(https:\/\/(?:fonts\.googleapis\.com\/css2\?|api\.fontshare\.com\/v2\/css\?)[^"]+)"/g)].map((m) => m[1])))];
+  if (!t.links?.length || cssHrefs.some((u) => !t.links.includes(u)) || t.links.some((u) => !cssHrefs.includes(u))) {
+    add('FAIL', 'font-link', at, `links array (${JSON.stringify(t.links)}) does not match the stylesheet URLs in display.css / text.css (${JSON.stringify(cssHrefs)})`, 'Consolidate both faces into the same stylesheet URL(s) across display.css, text.css and links.');
   }
   // One family filling both roles is a legitimate, common choice, but the sheet prints the same name twice
   // and the reader has to be told it is the idea rather than an oversight. It is declared structurally:

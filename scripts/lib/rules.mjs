@@ -14,11 +14,12 @@ export function colourFamily(hsl) {
   return null;
 }
 
+const round = (n, d = 2) => Math.round(n * 10 ** d) / 10 ** d;
 const hexToHsl = (hex) => {
   const n = parseInt(hex.slice(1), 16); const r = (n >> 16) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
   const mx = Math.max(r, g, b), mn = Math.min(r, g, b); const l = (mx + mn) / 2; let h = 0, s = 0;
   if (mx !== mn) { const d = mx - mn; s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn); h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h *= 60; }
-  return { h: Math.round(h), s, l };
+  return { h: Math.round(h), s: round(s), l: round(l) };
 };
 
 export function judge(m, { width = m.viewport.w, allow = [], surface = 'page' } = {}) {
@@ -101,11 +102,11 @@ export function judge(m, { width = m.viewport.w, allow = [], surface = 'page' } 
 
   // --- colour
   const fams = new Map();
-  const note = (label, hsl) => { const f = colourFamily(hsl); if (f) fams.set(f, [...(fams.get(f) || []), label]); };
+  const note = (label, hsl, allowCream = true) => { const f = colourFamily(hsl); if (f && (allowCream || f !== 'cream')) fams.set(f, [...(fams.get(f) || []), label]); };
   note('page background ' + m.color.bodyBg, m.color.bodyBgHsl);
   for (const sb of m.color.sectionBgs) note('section ' + sb.color, sb.hsl || hexToHsl(sb.color));
   if (m.color.button) note('button ' + m.color.button.bg, m.color.button.hsl || hexToHsl(m.color.button.bg));
-  for (const t of m.color.textColors) if (t.share >= 0.01) note('text ' + t.color, hexToHsl(t.color));
+  for (const t of m.color.textColors) if (t.share >= 0.01) note('text ' + t.color, hexToHsl(t.color), false);
   if (fams.has('terracotta') && fams.has('cream')) add('FAIL', 'palette-claude', `Cream + terracotta palette (${[...fams.get('cream'), ...fams.get('terracotta')].slice(0, 4).join(', ')}).`, 'Re-draw the palette from the library. This pairing reads as an assistant brand, not yours.');
   else if (fams.has('terracotta')) add('FAIL', 'palette-terracotta', `Terracotta / rust-orange accent (${fams.get('terracotta').slice(0, 3).join(', ')}).`, 'Use the accent from the drawn palette.');
   else if (fams.has('cream')) add('WARN', 'palette-cream', `Yellow-cream background (${fams.get('cream').slice(0, 3).join(', ')}).`, 'Use the drawn palette. If you want warmth, take a low-chroma stone or bone, not a yellow cream.');

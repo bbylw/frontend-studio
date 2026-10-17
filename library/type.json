@@ -1553,7 +1553,7 @@
     400
    ],
    "italic": true,
-   "settings": "weight 400 · tracking -0.02em · leading 0.95 · roman capitals for the main words with lowercase italic for the connecting words at the same size, or sentence case throughout; centred lines work",
+   "settings": "weight 400 · tracking -0.02em · leading 0.95 · sentence case or roman capitals throughout, or an entire line set in italic; centred lines work",
    "css": "<link rel=\"preconnect\" href=\"https://api.fontshare.com\">\n<link rel=\"preconnect\" href=\"https://cdn.fontshare.com\" crossorigin>\n<link href=\"https://api.fontshare.com/v2/css?f[]=boska@400,500&display=swap\" rel=\"stylesheet\">"
   },
   "text": {
@@ -2062,7 +2062,7 @@
    ],
    "italic": true,
    "settings": "weight 600 with the optical size turned up: `font-variation-settings: \"opsz\" 144, \"SOFT\" 0, \"WONK\" 1` · tracking -0.015em · leading 0.98 · sentence case; drop WONK to 0 below 28px, where the quirk reads as a mistake",
-   "css": "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n<link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>\n<link href=\"https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&display=swap\" rel=\"stylesheet\">"
+   "css": "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n<link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>\n<link href=\"https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&display=swap\" rel=\"stylesheet\">"
   },
   "text": {
    "family": "Instrument Sans",
@@ -2073,7 +2073,7 @@
    ],
    "italic": false,
    "settings": "400 body, 500 for emphasis · leading 1.55 · tracking -0.003em",
-   "css": "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n<link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>\n<link href=\"https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&display=swap\" rel=\"stylesheet\">"
+   "css": "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n<link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>\n<link href=\"https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&display=swap\" rel=\"stylesheet\">"
   },
   "standsInFor": [
    "GT Sectra",
@@ -2081,8 +2081,9 @@
    "Freight Display"
   ],
   "note": "A variable serif with an optical-size axis and a deliberate wonk in the terminals: at 96px it has the high contrast and the slightly-off stroke endings that read as drawn rather than assembled. Instrument Sans is narrow enough to sit under it without shouting. The one rule: WONK is for display sizes only.",
+  "seenIn": [],
   "links": [
-   "https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&display=swap"
+   "https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&display=swap"
   ],
   "scale": {
    "step-small": "clamp(0.8125rem, 0.79rem + 0.1vw, 0.875rem)",
@@ -2103,7 +2104,7 @@
    ],
    "italic": false,
    "settings": "one weight, and that is the point · tracking 0 · leading 1.06 · sentence case; never below 34px, it was drawn as a poster face and goes spindly small",
-   "css": "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n<link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>\n<link href=\"https://fonts.googleapis.com/css2?family=Gloock&display=swap\" rel=\"stylesheet\">"
+   "css": "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n<link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>\n<link href=\"https://fonts.googleapis.com/css2?family=Gloock&family=Karla:ital,wght@0,200..800;1,200..800&display=swap\" rel=\"stylesheet\">"
   },
   "text": {
    "family": "Karla",
@@ -2115,7 +2116,7 @@
    ],
    "italic": false,
    "settings": "400 body, 600 for the action and short emphasis, 500 for labels · leading 1.5 · tracking 0",
-   "css": "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n<link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>\n<link href=\"https://fonts.googleapis.com/css2?family=Karla:ital,wght@0,200..800;1,200..800&display=swap\" rel=\"stylesheet\">"
+   "css": "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n<link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>\n<link href=\"https://fonts.googleapis.com/css2?family=Gloock&family=Karla:ital,wght@0,200..800;1,200..800&display=swap\" rel=\"stylesheet\">"
   },
   "standsInFor": [
    "Playfair Display",
@@ -2123,8 +2124,9 @@
    "Domaine Display"
   ],
   "note": "The thickest thin strokes in the library: Gloock puts almost no weight in the join and a great deal in the stem, so a headline set in it looks engraved. That much contrast needs a plain, slightly awkward companion, which is what Karla is. Use for one hero and nothing else.",
+  "seenIn": [],
   "links": [
-   "https://fonts.googleapis.com/css2?family=Gloock&display=swap"
+   "https://fonts.googleapis.com/css2?family=Gloock&family=Karla:ital,wght@0,200..800;1,200..800&display=swap"
   ],
   "scale": {
    "step-small": "clamp(0.8125rem, 0.79rem + 0.1vw, 0.875rem)",
@@ -2145,7 +2147,7 @@
    ],
    "italic": false,
    "settings": "weight 400, one weight only · tracking 0.005em · leading 1.1 · sentence case; 40px or larger, and never more than two lines",
-   "css": "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n<link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>\n<link href=\"https://fonts.googleapis.com/css2?family=Libre+Caslon+Display&display=swap\" rel=\"stylesheet\">"
+   "css": "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n<link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>\n<link href=\"https://fonts.googleapis.com/css2?family=Libre+Caslon+Display&family=Karla:ital,wght@0,200..800;1,200..800&display=swap\" rel=\"stylesheet\">"
   },
   "text": {
    "family": "Karla",
@@ -2157,7 +2159,7 @@
    ],
    "italic": false,
    "settings": "400 body, 600 for the action · leading 1.5 · tracking 0",
-   "css": "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n<link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>\n<link href=\"https://fonts.googleapis.com/css2?family=Karla:ital,wght@0,200..800;1,200..800&display=swap\" rel=\"stylesheet\">"
+   "css": "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n<link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>\n<link href=\"https://fonts.googleapis.com/css2?family=Libre+Caslon+Display&family=Karla:ital,wght@0,200..800;1,200..800&display=swap\" rel=\"stylesheet\">"
   },
   "standsInFor": [
    "Freight Big",
@@ -2165,8 +2167,9 @@
    "Adobe Caslon"
   ],
   "note": "A Caslon for the title and a grotesque that admits its workmanliness for the text. The pairing is quiet and bookish: right for a practice, a publisher, an archive, anything whose authority comes from age rather than from volume.",
+  "seenIn": [],
   "links": [
-   "https://fonts.googleapis.com/css2?family=Libre+Caslon+Display&display=swap"
+   "https://fonts.googleapis.com/css2?family=Libre+Caslon+Display&family=Karla:ital,wght@0,200..800;1,200..800&display=swap"
   ],
   "scale": {
    "step-small": "clamp(0.8125rem, 0.79rem + 0.1vw, 0.875rem)",
@@ -2188,7 +2191,7 @@
    ],
    "italic": false,
    "settings": "weight 800 · tracking -0.02em · leading 0.96 · sentence case; the wide cut of Syne wants short words, so cut before the headline gets longer than six words",
-   "css": "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n<link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>\n<link href=\"https://fonts.googleapis.com/css2?family=Syne:wght@400..800&display=swap\" rel=\"stylesheet\">"
+   "css": "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n<link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>\n<link href=\"https://fonts.googleapis.com/css2?family=Syne:wght@400..800&family=Familjen+Grotesk:ital,wght@0,400..700;1,400..700&display=swap\" rel=\"stylesheet\">"
   },
   "text": {
    "family": "Familjen Grotesk",
@@ -2198,16 +2201,17 @@
     500
    ],
    "italic": true,
-   "settings": "400 body, 500 for emphasis, italic for a single word at most · leading 1.55 · tracking 0",
-   "css": "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n<link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>\n<link href=\"https://fonts.googleapis.com/css2?family=Familjen+Grotesk:ital,wght@0,400..700;1,400..700&display=swap\" rel=\"stylesheet\">"
+   "settings": "400 body, 500 for emphasis, italic for titles or quotations · leading 1.55 · tracking 0",
+   "css": "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n<link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>\n<link href=\"https://fonts.googleapis.com/css2?family=Syne:wght@400..800&family=Familjen+Grotesk:ital,wght@0,400..700;1,400..700&display=swap\" rel=\"stylesheet\">"
   },
   "standsInFor": [
    "Neue Haas Grotesk Display",
    "Aeonik Display"
   ],
   "note": "Syne is a geometric with off-centre apertures and a wide stance, so it reads as a poster rather than a website. Familjen Grotesk is Scandinavian and plain, which is the point: it keeps the page from becoming a specimen sheet. Wrong for anything that wants to look institutional.",
+  "seenIn": [],
   "links": [
-   "https://fonts.googleapis.com/css2?family=Syne:wght@400..800&display=swap"
+   "https://fonts.googleapis.com/css2?family=Syne:wght@400..800&family=Familjen+Grotesk:ital,wght@0,400..700;1,400..700&display=swap"
   ],
   "scale": {
    "step-small": "clamp(0.8125rem, 0.79rem + 0.1vw, 0.875rem)",
@@ -2229,8 +2233,8 @@
     600
    ],
    "italic": true,
-   "settings": "weight 500 · tracking -0.012em · leading 1.06 · sentence case; headings sit a step lighter than you expect, and the italic is held for one word at most",
-   "css": "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n<link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>\n<link href=\"https://fonts.googleapis.com/css2?family=Petrona:ital,wght@0,100..900;1,100..900&display=swap\" rel=\"stylesheet\">"
+   "settings": "weight 500 · tracking -0.012em · leading 1.06 · sentence case; headings sit a step lighter than you expect, and italic is used for a whole line, never for a single word",
+   "css": "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n<link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>\n<link href=\"https://fonts.googleapis.com/css2?family=Petrona:ital,wght@0,100..900;1,100..900&family=Commissioner:wght@100..900&display=swap\" rel=\"stylesheet\">"
   },
   "text": {
    "family": "Commissioner",
@@ -2242,16 +2246,17 @@
    ],
    "italic": false,
    "settings": "300 to 400 body, 500 for emphasis · leading 1.6 · tracking 0.005em; a wider, quieter sans than the usual, so long paragraphs hold together",
-   "css": "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n<link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>\n<link href=\"https://fonts.googleapis.com/css2?family=Commissioner:ital,wght@0,100..900;1,100..900&display=swap\" rel=\"stylesheet\">"
+   "css": "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n<link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>\n<link href=\"https://fonts.googleapis.com/css2?family=Petrona:ital,wght@0,100..900;1,100..900&family=Commissioner:wght@100..900&display=swap\" rel=\"stylesheet\">"
   },
   "standsInFor": [
    "Source Serif Display",
    "Literata Display",
    "Söhne Breit"
   ],
-  "note": "One serif across the whole page, from 300 to 600, so hierarchy is a weight and a size rather than a second family. Commissioner is set wide and open on purpose: it is the text face that keeps a long argument readable without adding a third voice.",
+  "note": "Petrona handles display and subheads from 300 to 600 with soft, bookish serifs, while Commissioner is set wide and open beneath it so long paragraphs hold together without a third voice.",
+  "seenIn": [],
   "links": [
-   "https://fonts.googleapis.com/css2?family=Petrona:ital,wght@0,100..900;1,100..900&display=swap"
+   "https://fonts.googleapis.com/css2?family=Petrona:ital,wght@0,100..900;1,100..900&family=Commissioner:wght@100..900&display=swap"
   ],
   "scale": {
    "step-small": "clamp(0.8125rem, 0.79rem + 0.1vw, 0.875rem)",

@@ -39,7 +39,7 @@
             --surface: #f1f1ef;   /* one tone step from the ground: the sidebar, the canvas mat */
             --ink: #16161a;
             --muted: #63636b;     /* secondary text; still passes contrast on --bg */
-            --accent: #16161a;    /* the primary control */
+            --accent: #2f4f6f;    /* the primary control: distinct from --ink */
             --accent-ink: #fbfbfa;
             --line: #d9d9d5;      /* form fields only; never a divider between sections */
 
@@ -177,7 +177,7 @@
         }
 
         @media (hover: hover) and (pointer: fine) {
-            .button:not(.secondary):not(.tertiary):hover { background: #000; }
+            .button:not(.secondary):not(.tertiary):hover { background: #233b53; }
             .button.secondary:hover, .button.tertiary:hover { background: var(--bg); }
         }
 
@@ -391,14 +391,51 @@
         // Seed every source of randomness so the same seed always gives the same piece:
         //   randomSeed(params.seed); noiseSeed(params.seed);
         // ═══════════════════════════════════════════════════════════════════════════
+        let agents = [];
+
         const system = () => {
             // Build the system here: the field, the grid, the agents, the rules.
             // Called once per seed / parameter change, before the first frame.
+            background(params.palette[0]);
+            agents = Array.from({ length: params.particleCount }, (_, i) => ({
+                x: random(SIZE),
+                y: random(SIZE),
+                accent: i % 7 === 0,
+            }));
+        };
+
+        const stepField = () => {
+            const ground = color(params.palette[0]);
+            ground.setAlpha(Math.round(map(params.trailLength, 2, 20, 42, 6)));
+            noStroke();
+            fill(ground);
+            rect(0, 0, SIZE, SIZE);
+
+            const inkCol = color(params.palette[1]);
+            inkCol.setAlpha(150);
+            const accCol = color(params.palette[2]);
+            accCol.setAlpha(190);
+
+            strokeWeight(1.15);
+            const scale = params.noiseScale;
+            const speed = params.flowSpeed * 2.4;
+
+            for (let i = 0; i < agents.length; i++) {
+                const a = agents[i];
+                const angle = noise(a.x * scale, a.y * scale) * TWO_PI * 2.0;
+                const nx = a.x + Math.cos(angle) * speed;
+                const ny = a.y + Math.sin(angle) * speed;
+                stroke(a.accent ? accCol : inkCol);
+                line(a.x, a.y, nx, ny);
+                a.x = (nx + SIZE) % SIZE;
+                a.y = (ny + SIZE) % SIZE;
+            }
         };
 
         const drawGenerativeArt = () => {
             // Draw one frame here. If the piece is static, draw it once and call noLoop().
             // If it evolves, leave the loop running and stop it under reduced motion (see below).
+            stepField();
         };
 
         function setup() {
@@ -419,7 +456,7 @@
             noiseSeed(params.seed);
             system();
             if (reduced.matches) {
-                drawGenerativeArt();
+                for (let i = 0; i < params.trailLength * 4; i++) stepField();
                 noLoop();
             } else {
                 loop();

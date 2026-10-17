@@ -1,5 +1,5 @@
 {
-  "skill_name": "design-taste-frontend",
+  "skill_name": "frontend-studio",
   "how_to_run": "For each eval, give the prompt to a fresh agent that has this skill, and to a second fresh agent without it (the baseline). Render both with scripts/inspect.mjs and have a judge who does not know which is which score the screenshots with references/critique.md. Record inspector FAIL counts for both.",
   "evals": [
     {
@@ -42,6 +42,20 @@
       "name": "conference-format",
       "prompt": "Landing page for Format, a two-day design conference in Rotterdam on 14 and 15 May 2027. Twelve speakers (invent plausible names and talk titles), 400 seats, tickets at 390 euros, venue: Maassilo. Sections: what it is, the line-up, the schedule in brief, tickets, and a short FAQ. No brand exists yet beyond the name. Static HTML/CSS/JS.",
       "expected_output": "An event page with a strong typographic or colour idea, the line-up and schedule set as structured text without divider lines or index numbers, a ticket section that is not three cards, and all house rules met.",
+      "files": []
+    },
+    {
+      "id": 7,
+      "name": "product-dashboard",
+      "prompt": "Build the working operations screen for Harbor, a cold-chain freight monitor that tracks 18 refrigerated containers between Rotterdam and Lisbon. Show the live container table (ID, vessel, target temp, current temp, customs status, ETA), a temperature excursion inspector for the selected container, and a filter for containers out of range. Static HTML/CSS/JS.",
+      "expected_output": "A working product surface drawn with --surface product: one clear focal work area (the container table and inspector), tabular-nums or monospace limited to literal IDs and temperatures, rules limited to the data table and form controls, interactive row selection and excursion filtering, and zero FAIL findings under lint.mjs and inspect.mjs --surface product.",
+      "files": []
+    },
+    {
+      "id": 8,
+      "name": "generative-tidal-contours",
+      "prompt": "Create an interactive, seeded generative art piece exploring tidal contour lines and sediment drift in an estuary. Include seed navigation, parameters for contour density, tidal turbulence, and drift speed, and a PNG export button. Single self-contained HTML file.",
+      "expected_output": "A self-contained generative art viewer built on assets/viewer.html with deterministic PRNG seeding (randomSeed/noiseSeed), flat neutral chrome separated by a tone step, a distinct accent on the primary control, live parameter sliders that visibly alter the drawing, reduced-motion support, and zero FAIL findings under lint.mjs.",
       "files": []
     }
   ]

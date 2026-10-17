@@ -61,7 +61,7 @@
   "muted": "#6a615d",
   "accent": "#0f7d45",
   "accentInk": "#ffffff",
-  "note": "A single rosy grey covers the page from top to bottom with brown-black text and grey secondary lines; images are kept greyscale. Green appears only on the current-page link and on one button in the footer.",
+  "note": "Rosy grey covers the page with brown-black text, grey secondary lines and a deeper rose-grey section field; images are kept greyscale. Green appears only on the current-page link and on one button in the footer.",
   "seenIn": [
    "opl-the-queue"
   ],
@@ -90,7 +90,7 @@
     "ink": "#e8e8e3"
    }
   ],
-  "note": "Warm paper grey with near-black type holds the upper page, then whole sections flip to near-black with paper-grey type; no section is tinted. Brass yellow marks one small detail per screen, such as the button or a single word.",
+  "note": "Warm paper grey with near-black type holds the upper page, then whole sections flip to near-black with paper-grey type; no section is tinted. Brass yellow marks one small detail per screen, such as the primary button or an active control.",
   "seenIn": [
    "aww-monolog"
   ]
@@ -259,7 +259,7 @@
   "muted": "#8f8f8f",
   "accent": "#a08672",
   "accentInk": "#111111",
-  "note": "Soft black holds the page with panels one step lighter, white text and grey secondary lines, so photographs supply all the colour. Muted bronze goes on small markers and the one button only.",
+  "note": "Soft black holds the page with panels one step lighter, white text, grey secondary lines and one quiet bone-paper contrast field, so photographs supply the colour. Muted bronze goes on small markers and the one button only.",
   "seenIn": [
    "aww-21-hrs-on-the-moon",
    "opl-dialkit",
@@ -267,7 +267,7 @@
   ],
   "fields": [
    {
-    "bg": "#f2efe9",
+    "bg": "#f0efec",
     "ink": "#141414"
    }
   ]
@@ -284,7 +284,7 @@
   "muted": "#8891a1",
   "accent": "#5a9bfc",
   "accentInk": "#0a0d14",
-  "note": "Blue-black ground and slate panels with silver-white text fill the page; no section changes colour. Cornflower blue marks the buttons and at most one word in a heading.",
+  "note": "Blue-black ground and slate panels with silver-white text fill the page, with one cool pale field available for contrast. Cornflower blue marks the primary button and active controls.",
   "seenIn": [
    "opl-viewport-2",
    "aww-moto-finance",
@@ -310,7 +310,7 @@
   "muted": "#8e948d",
   "accent": "#9fc7b8",
   "accentInk": "#161c1a",
-  "note": "Bone type on green-black from top to bottom, with panels and drawn details barely lighter than the ground so photographs supply the colour. Pale jade is for the booking or contact button alone.",
+  "note": "Bone type on green-black holds most of the page, with panels barely lighter than the ground and one inverted bone field available for quiet relief. Pale jade is for the booking or contact button alone.",
   "seenIn": [
    "opl-kereliott",
    "aww-lama-lama-2"
@@ -341,7 +341,7 @@
     "ink": "#0a0a0a"
    }
   ],
-  "note": "Black with off-white text and mid-grey texture takes nearly the whole page, and the last sections may invert to off-white with black type. Deep crimson is scattered sparingly: a few characters in a heading, a slider fill, the one button.",
+  "note": "Black with off-white text and mid-grey texture takes nearly the whole page, and the last sections may invert to off-white with black type. Deep crimson is used sparingly: a slider fill, an active marker, or the one button.",
   "seenIn": [
    "opl-textmode-overlay"
   ]
@@ -412,14 +412,14 @@
   "muted": "#8f8a84",
   "accent": "#c9a45a",
   "accentInk": "#0c0a08",
-  "note": "Warm near-black fills the page and photographs sit bright against it, with pure white small type; panels warm to a brown-black. Gold is for one text link or small button per screen, never a field.",
+  "note": "Warm near-black fills the page and photographs sit bright against it, with pure white type, brown-black panels and one stone-paper field for contrast. Gold is for one text link or small button per screen, never a full section field.",
   "seenIn": [
    "aww-cipher",
    "opl-hebbia"
   ],
   "fields": [
    {
-    "bg": "#f4efe6",
+    "bg": "#eeede9",
     "ink": "#0c0a08"
    }
   ]
@@ -526,7 +526,7 @@
     "ink": "#ffffff"
    }
   ],
-  "note": "White ground, black text and paper grey for filled panels, with one full black band allowed. Signal red is the only colour in the interface: one word in a headline, a few solid blocks, or the button.",
+  "note": "White ground, black text and paper grey for filled panels, with one full black band allowed. Signal red is the only colour in the interface: a whole short line, a few solid blocks, or the button.",
   "seenIn": [
    "opl-rsquad",
    "aww-serotoninn",
@@ -627,7 +627,7 @@
     "ink": "#f7f9f8"
    }
   ],
-  "note": "Cool white paper and a single teal used for every word, shape and button, with no black anywhere. The accent is that same teal filled solid, for the button and for one inverted band with paper-coloured type.",
+  "note": "Cool white paper carries dark slate-green body type and muted teal secondary lines, while solid deep teal is reserved for the primary button and one inverted band with paper-coloured type.",
   "seenIn": [
    "opl-le-petit-bleu"
   ]
@@ -641,17 +641,17 @@
   ],
   "bg": "#1a2039",
   "surface": "#212846",
-  "ink": "#f2f0ec",
+  "ink": "#f1f0ed",
   "muted": "#b9879c",
   "accent": "#f9a3c0",
   "accentInk": "#1a2039",
-  "note": "One navy field runs the entire page. Pink does everything else, from the name and headings to body text, and fills one solid button.",
+  "note": "Deep navy holds the page with bone-white body type and dusty-rose secondary lines, plus one bone-white field when a section needs a quiet rest. Pastel pink fills the solid button and key interactive accents.",
   "seenIn": [
    "aww-trevor-noah"
   ],
   "fields": [
    {
-    "bg": "#f2f0ec",
+    "bg": "#f1f0ed",
     "ink": "#1a2039"
    }
   ]
@@ -674,7 +674,7 @@
     "ink": "#edccbe"
    }
   ],
-  "note": "Blush pink and dark aubergine alternate as full fields and serve as each other's text colour, in roughly equal shares. There is no third colour: the button is a solid block of whichever of the two is not the ground.",
+  "note": "Blush pink and dark aubergine alternate as full fields and serve as each other's text colour, with muted plum for secondary lines and a richer plum-magenta block for the primary button.",
   "seenIn": [
    "aww-house-of-honey-1",
    "opl-sarah-matt-wedding"
@@ -692,7 +692,7 @@
   "muted": "#3a5aa8",
   "accent": "#062b8a",
   "accentInk": "#e6dbc7",
-  "note": "Sand paper and one cobalt do everything: text, drawings and solid shapes are all the same blue. The button is a cobalt block with sand-coloured type, and no black or second hue is used.",
+  "note": "Sand paper holds the page with warm charcoal body ink and mid-cobalt secondary lines. Deep cobalt fills the primary button with sand-coloured type and can invert one full section field.",
   "seenIn": [
    "aww-illoca"
   ],
@@ -721,7 +721,7 @@
     "ink": "#e2e2e2"
    }
   ],
-  "note": "Deep red text on grey paper holds most of the page, then pale grey text on a solid red field takes one long section and the footer. Photographs are desaturated so nothing breaks the pair, and the button is a solid red block.",
+  "note": "Warm near-black ink and muted oxblood secondary lines sit on grey paper across most of the page, then pale grey text on a solid oxblood field takes one long section and the footer. Photographs are desaturated so nothing breaks the pair, and the button is a solid oxblood block.",
   "seenIn": [
    "opl-belgrade-architecture"
   ]
@@ -745,7 +745,7 @@
     "ink": "#ecebe7"
    }
   ],
-  "note": "A bone page with every word, large or small, in one olive green; the footer inverts to a solid olive field with bone text. Photography supplies all other colour, and the button is the same olive, filled.",
+  "note": "A bone page with dark olive-charcoal body type and moss-olive secondary lines; the footer inverts to a solid olive field with bone text. Photography supplies all other colour, and the button is filled with the same deep olive.",
   "seenIn": [
    "aww-tengile-malamala-collection"
   ]
@@ -762,7 +762,7 @@
   "muted": "#c77aa0",
   "accent": "#ff99d3",
   "accentInk": "#3d0012",
-  "note": "Deep burgundy is the ground for the whole page and bubblegum pink sets every word on it. The button and the active state of a control are solid pink with burgundy type; product photographs supply any other colour.",
+  "note": "Deep burgundy is the ground for the page with pale blush-white body type, rose secondary lines and an inverted blush field for contrast. The button and active control are solid bubblegum pink with burgundy type; product photographs supply any other colour.",
   "seenIn": [
    "opl-madie"
   ],
@@ -786,7 +786,7 @@
   "muted": "#b3a55e",
   "accent": "#f4d96c",
   "accentInk": "#133621",
-  "note": "Bottle green covers the page and warm gold sets all the type, with panels one step lighter than the ground. The button is solid gold with green text, and photographs are kept dark and warm so the pair is not disturbed.",
+  "note": "Bottle green covers the page with pale bone body type, muted brass secondary lines and panels one step lighter than the ground, plus a pale bone field for contrast. The button is solid warm gold with green text, and photographs are kept dark and warm so the pair is not disturbed.",
   "seenIn": [
    "aww-lacoste-ace-breaker"
   ],
@@ -844,7 +844,7 @@
   ],
   "fields": [
    {
-    "bg": "#f4f2ec",
+    "bg": "#f2f1ee",
     "ink": "#141414"
    },
    {
@@ -926,7 +926,7 @@
     "ink": "#ffffff"
    }
   ],
-  "note": "Sky blue sits behind everything, white cards lie on top of it, and navy handles all text and the footer. Orange is for buttons and one highlighted word, so orange against blue is the single clash on the page.",
+  "note": "Sky blue sits behind everything, white cards lie on top of it, and navy handles all text and the footer. Orange is reserved for buttons and active controls, so orange against blue is the single clash on the page.",
   "seenIn": [
    "opl-ohhmydesign",
    "opl-anidachi"
@@ -952,7 +952,7 @@
     "ink": "#ff7a1f"
    }
   ],
-  "note": "Hot orange is the page: one flat field with blue-black type, flipping at a hard horizontal seam to a white section when the content needs a rest. The button is a solid block of the same blue-black with orange text, and every other colour comes from the objects shown.",
+  "note": "Hot orange is the page: one flat field with blue-black type, flipping at a hard horizontal seam to a near-black section with orange text when the content needs a shift. The button is a solid white block with blue-black text, and every other colour comes from the objects shown.",
   "seenIn": [
    "opl-postaway",
    "opl-the-new-industrials"

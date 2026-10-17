@@ -13,6 +13,10 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, extname, relative, resolve } from 'node:path';
 
 const args = process.argv.slice(2);
+if (args.includes('-h') || args.includes('--help')) {
+  console.log('usage: node lint.mjs [files or directories ...] [--surface page|product] [--json]');
+  process.exit(0);
+}
 const asJson = args.includes('--json');
 const surfaceAt = args.indexOf('--surface');
 // -1 means the flag is absent. `surfaceAt + 1` would then be 0, which is a real path argument: the
@@ -76,22 +80,22 @@ for (const file of files) {
     // track the CSS selector we are inside, so rules scoped to [data-ui] (interface fragments) keep their own lines
     if (line.includes('{')) { selector = pending + line.slice(0, line.indexOf('{')); pending = ''; } else if (!line.includes('}')) pending = (pending + ' ' + line).slice(-300);
     const inUi = /data-ui/.test(selector) || /data-ui/.test(line);
-    if (line.includes('}') && !line.includes('{')) { selector = ''; pending = ''; }
     if (/<(pre|code)\b/i.test(line)) inCode = true;
     const codeLine = inCode || /<(pre|code|kbd|samp)\b/i.test(line);
     if (/<\/(pre|code)>/i.test(line)) inCode = false;
-    if (line.length > 2000) return; // minified or data
-    if (/fs-ignore/.test(line)) return;
-    if (!/^\s*(\/\/|\/\*|\*|<!--)/.test(line)) emDashes += (line.replace(/\/\/.*$|\/\*.*?\*\/|<!--.*?-->/g, '').match(/—/g) || []).length; // comments are not copy
-    for (const [level, id, re, message] of R) {
-      if (id === 'mono' && (codeLine || /(^|[\s,>+~(])(pre|code|kbd|samp)\b|code/i.test(selector))) continue; // real code may be monospace
-      if ((id === 'hairline' || id === 'outlined-box') && /(^|[\s,>+~(])(table|thead|tbody|tfoot|tr|td|th|input|textarea|select|fieldset)\b/i.test(selector)) continue; // real tables and form fields keep their lines
-      if (inUi && (id === 'hairline' || id === 'outlined-box' || id === 'shadow')) continue;
-      if (id === 'hairline' && /sr-only|visually-hidden|clip(-path)?\s*:|outline/i.test(line + selector)) continue; // screen-reader helpers and focus outlines are not rules
-      if ((id === 'copy' || id === 'cta-copy' || id === 'emoji') && /^\s*(\/\/|\/\*|\*|import |@import|<!--)/.test(line)) continue;
-      const m = line.match(re);
-      if (m) findings.push({ level: RELAXED.has(id) && level === 'FAIL' ? 'WARN' : level, id, file: rel, line: i + 1, match: m[0].trim().slice(0, 70), message: RELAXED.has(id) ? message + ' Tolerated in product mode while it stays in its documented role.' : message });
+    if (line.length <= 2000 && !/fs-ignore/.test(line)) {
+      if (!/^\s*(\/\/|\/\*|\*|<!--)/.test(line)) emDashes += (line.replace(/\/\/.*$|\/\*.*?\*\/|<!--.*?-->/g, '').match(/—/g) || []).length; // comments are not copy
+      for (const [level, id, re, message] of R) {
+        if (id === 'mono' && (codeLine || /(^|[\s,>+~(])(pre|code|kbd|samp)\b|code/i.test(selector))) continue; // real code may be monospace
+        if ((id === 'hairline' || id === 'outlined-box') && /(^|[\s,>+~(])(table|thead|tbody|tfoot|tr|td|th|input|textarea|select|fieldset)\b/i.test(selector)) continue; // real tables and form fields keep their lines
+        if (inUi && (id === 'hairline' || id === 'outlined-box' || id === 'shadow')) continue;
+        if (id === 'hairline' && /sr-only|visually-hidden|clip(-path)?\s*:|outline/i.test(line + selector)) continue; // screen-reader helpers and focus outlines are not rules
+        if ((id === 'copy' || id === 'cta-copy' || id === 'emoji') && /^\s*(\/\/|\/\*|\*|import |@import|<!--)/.test(line)) continue;
+        const m = line.match(re);
+        if (m) findings.push({ level: RELAXED.has(id) && level === 'FAIL' ? 'WARN' : level, id, file: rel, line: i + 1, match: m[0].trim().slice(0, 70), message: RELAXED.has(id) ? message + ' Tolerated in product mode while it stays in its documented role.' : message });
+      }
     }
+    if (line.includes('}')) { selector = ''; pending = ''; }
   });
 }
 if (emDashes > 4) findings.push({ level: 'WARN', id: 'em-dash', file: '(all files)', line: 0, match: `${emDashes} em dashes`, message: 'Em-dash habit. Use a full stop or a comma; keep at most one or two on a page.' });

@@ -34,6 +34,20 @@ const ASSETS_CMD = `node ${/\s/.test(ASSETS_PATH) ? `"${ASSETS_PATH}"` : ASSETS_
 const load = (name) => JSON.parse(readFileSync(join(LIB, name + '.json'), 'utf8'));
 
 const argv = process.argv.slice(2);
+if (argv.includes('-h') || argv.includes('--help')) {
+  console.log(`usage:
+  node draw.mjs --sector <sector> --brief "one line" [--sections hero,showcase,pricing,footer]
+                [--surface page|product] [--tone quiet|bold|warm|technical|playful|luxury|editorial]
+                [--have photography,product-photo,product-ui,illustration,video] [--keep palette,type]
+                [--avoid id,id] [--seed N] [--out DIR] [--options 3] [--direction <id>]
+  node draw.mjs --show
+  node draw.mjs --redraw hero|type|palette|photos|section:<role>|section:<role>=<id>|direction
+  node draw.mjs --alternatives <role>
+  node draw.mjs --list sectors|directions|roles|tones
+  node draw.mjs --photos list|<set>|<query>
+  node draw.mjs --site <id>`);
+  process.exit(0);
+}
 const opt = (name, def) => { const i = argv.indexOf('--' + name); if (i === -1) return def; const v = argv[i + 1]; return v === undefined || v.startsWith('--') ? true : v; };
 const list = (v) => (typeof v === 'string' ? v.split(',').map((s) => s.trim()).filter(Boolean) : []);
 const outDir = resolve(String(opt('out', '.frontend-studio')));
@@ -181,6 +195,15 @@ if (opt('redraw')) {
   }
   const requested = list(opt('sections'));
   const surfaceOpt = String(opt('surface', ''));
+  if (surfaceOpt && !['page', 'product'].includes(surfaceOpt)) {
+    console.error(`--surface must be "page" or "product" (got "${surfaceOpt}").`);
+    process.exit(2);
+  }
+  const toneOpt = opt('tone');
+  if (toneOpt && !TONES.includes(String(toneOpt))) {
+    console.error(`--tone must be one of: ${TONES.join(', ')} (got "${toneOpt}").`);
+    process.exit(2);
+  }
   // Sectors that are software by nature infer `product`; everything else is a public page. The inference
   // is printed with the sheet, because a docs site or a dashboard can genuinely be either and the person
   // reading the sheet is the one who knows which.
@@ -191,7 +214,7 @@ if (opt('redraw')) {
     brief: typeof opt('brief') === 'string' ? opt('brief') : '', sector,
     surface: surfaceGiven ? surfaceOpt : inferredSurface,
     surfaceInferred: !surfaceGiven,
-    tone: TONES.includes(opt('tone')) ? opt('tone') : null,
+    tone: TONES.includes(toneOpt) ? toneOpt : null,
     have: list(opt('have')), keep: list(opt('keep')), avoid: list(opt('avoid')),
     sections: (requested.length ? requested : DEFAULT_SECTIONS[sector]).map((r) => ROLE_ALIAS[r] || r).filter((r) => r !== 'hero'),
     direction: typeof opt('direction') === 'string' ? opt('direction') : null,
@@ -480,7 +503,8 @@ function render(s) {
   if (s.type) {
     const t = s.type;
     p(`## 3. Type — ${t.name}`); p(t.note);
-    p('```html'); for (const l of [...new Set([t.display.css, t.text.css].filter(Boolean))]) p(l); p('```');
+    const cssLines = [...new Set([t.display.css, t.text.css].filter(Boolean).flatMap((c) => c.split('\n')).map((l) => l.trim()).filter(Boolean))];
+    p('```html'); for (const l of cssLines) p(l); p('```');
     p(`- Display: **${t.display.family}** — ${t.display.settings}`);
     p(`- Text: **${t.text.family}** — ${t.text.settings}`);
     // One family doing both jobs is a decision, not a mistake. Say so, or the reader counts the names.
