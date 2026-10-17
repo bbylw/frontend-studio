@@ -107,6 +107,7 @@ const MOTION_RECORDER = `(() => {
   const watch = () => new MutationObserver((list) => { for (const m of list) { const s = m.target.getAttribute && m.target.getAttribute('style') || ''; if (/transform|translate|opacity|scale|rotate|clip-path/.test(s)) note(m.target, 'scripted'); } })
     .observe(document.documentElement, { attributes: true, attributeFilter: ['style'], subtree: true });
   if (document.documentElement) watch(); else addEventListener('DOMContentLoaded', watch);
+  const picTransforms = new Map();
   window.__motionSample = () => {
     for (const a of document.getAnimations ? document.getAnimations() : []) { const t = a.effect && a.effect.target; if (t) note(t, a.constructor && a.constructor.name === 'CSSTransition' ? 'transitions' : 'css'); }
     if (rafTicks >= 3) {
@@ -115,13 +116,24 @@ const MOTION_RECORDER = `(() => {
         if (r.width >= 40 && r.height >= 40) note(cv, 'canvas');
       }
     }
+    for (const im of document.querySelectorAll('img, picture, figure')) {
+      const r = im.getBoundingClientRect();
+      if (r.width < 120 || r.height < 90) continue;
+      const tf = getComputedStyle(im).transform;
+      if (tf && tf !== 'none') {
+        const set = picTransforms.get(im) || new Set();
+        set.add(tf);
+        picTransforms.set(im, set);
+      }
+    }
   };
   window.__motion = () => {
     window.__motionSample();
     const v = [...document.querySelectorAll('video')];
     const cvs = [...document.querySelectorAll('canvas')].filter((x) => { const r = x.getBoundingClientRect(); return r.width >= 40 && r.height >= 40; });
     const playingCanvases = rafTicks >= 3 ? cvs.length : 0;
-    return { ...c, rafTicks, videos: v.length, playingVideos: v.filter((x) => x.autoplay || !x.paused).length, playingCanvases };
+    const scrollMovedPictures = [...picTransforms.values()].filter((s) => s.size >= 2).length;
+    return { ...c, rafTicks, videos: v.length, playingVideos: v.filter((x) => x.autoplay || !x.paused).length, playingCanvases, scrollMovedPictures };
   };
 })();`;
 
@@ -172,6 +184,7 @@ try {
       m.page.realPictures = after.page.realPictures;
       m.page.pictureSamples = after.page.pictureSamples;
     }
+    m.page.movingPictures = Math.max(m.page.movingPictures || 0, after.page?.movingPictures || 0, motion?.scrollMovedPictures || 0);
 
     const cols = w >= 1100 ? 2 : w >= 600 ? 3 : 4;
     const cellW = w >= 1100 ? 800 : w >= 600 ? 512 : 390;
@@ -194,7 +207,7 @@ try {
     if (clippedText.length && !allow.includes('clipped-text')) findings.push({ level: 'FAIL', id: 'clipped-text', width: w, message: 'Large text is cut off along its top by the box that holds it: ' + clippedText.slice(0, 3).map((c) => `"${c.text}" (screen ${c.screen})`).join('; '), fix: 'Jurors read a wordmark sliced at the top as broken. Give the box room for the ascenders (line-height and padding), or crop at the bottom or a side edge on purpose.' });
     const overPictures = [...new Map(frameChecks.filter(Boolean).flatMap((f, i) => (f.pinnedOver || []).map((c) => [c.text, { ...c, screen: i + 1 }]))).values()];
     if (overPictures.length && !allow.includes('pinned-over-picture')) findings.push({ level: 'WARN', id: 'pinned-over-picture', width: w, message: 'Pinned large text slides across pictures while the page scrolls: ' + overPictures.slice(0, 3).map((c) => `"${c.text}" (screen ${c.screen}, ${Math.round(c.share * 100)}% over a picture)`).join('; '), fix: 'Jurors read a pinned title crossing drawings or photographs as a collision. Keep the pictures in the column the title does not occupy, or unpin it.' });
-    const empty = frameChecks.map((f, i) => ({ f, i })).filter(({ f }) => f && f.filled < 0.2);
+    const empty = frameChecks.map((f, i) => ({ f, i })).filter(({ f }) => f && f.filled < 0.15);
     // the same large statement on screen past three screens in a row
     const runs = new Map();
     frameChecks.forEach((f, i) => { for (const t of f?.big || []) { const r = runs.get(t) || { start: i, last: i - 1, best: 0 }; if (r.last === i - 1) r.last = i; else { r.start = i; r.last = i; } r.best = Math.max(r.best, r.last - r.start + 1); runs.set(t, r); } });
@@ -208,7 +221,7 @@ try {
       if (moving < MOTION_MIN) findings.push({ level: 'FAIL', id: 'still-page', width: w, message: `Only ${motion.elements} element(s) moved while the page loaded and scrolled${motion.playingVideos ? ` (plus ${motion.playingVideos} playing video)` : ''}${canvasNote}.`, fix: 'Build the motion layer (SKILL.md step 9, references/motion.md): the signature move, an entrance for the parts of every section, feedback on every control, and one moving picture. Transform and opacity only, with a reduced-motion fallback.' });
       else if (moving < MOTION_GOOD) findings.push({ level: 'WARN', id: 'still-page', width: w, message: `Little motion: ${motion.elements} element(s) moved while the page loaded and scrolled${canvasNote}.`, fix: 'Give every section an entrance for its parts (not one fade of the whole block) and add one moving picture: a looping clip or a slow move on a photograph.' });
     }
-    if (w >= 1100 && surface === 'page' && !isArt && empty.length >= 2 && !allow.includes('empty-screens')) findings.push({ level: 'FAIL', id: 'empty-screens', width: w, message: `${empty.length} of ${frameChecks.length} desktop screens are almost empty ground (under 20% of the screen holds text, a picture or a colour field): screens ${empty.map(({ i }) => i + 1).join(', ')}.`, fix: 'An empty screen is a rest only once per page. Elsewhere it means the section is underbuilt: set its content larger, give it the full information, put it on a colour field, or cut it.' });
+    if (w >= 1100 && surface === 'page' && !isArt && empty.length >= 2 && !allow.includes('empty-screens')) findings.push({ level: 'FAIL', id: 'empty-screens', width: w, message: `${empty.length} of ${frameChecks.length} desktop screens are almost empty ground (under 15% of the screen holds text or imagery): screens ${empty.map(({ i }) => i + 1).join(', ')}.`, fix: 'An empty screen is a rest only once per page. Elsewhere it means the section is underbuilt: set its content larger, give it the full information, add a real picture, or cut the section.' });
     report.viewports.push({ width: w, height: h, load: how, screens: frames.length, totalScreens: total, filled: frameChecks.map((f) => f?.filled ?? null), motion, metrics: m, consoleErrors: page.consoleErrors.slice(0, 5) });
     report.findings.push(...findings);
     report.images.push({ viewport: label, width: w, fold, pages: sheets });

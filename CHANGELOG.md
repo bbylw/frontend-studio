@@ -1,5 +1,49 @@
 # Changelog
 
+## 2.2.3 — 2026-10-17
+
+Seven measurement, linter, library and documentation issues reproduced from `skill-aesthetics-for-review.md` and fixed.
+
+### Fixed
+
+- **`filled` measured section background tone steps instead of content (`scripts/lib/probe.mjs:580-600`,
+  `scripts/inspect.mjs:197,211`).** `frame()` previously counted any sample point whose ancestor had
+  `backgroundColor !== pageBg` as filled. Because `SKILL.md:430` instructs builders to separate sections with
+  a tone step, any tone-stepped `<section>` read `filled = 1.0` even when nearly empty, silencing
+  `empty-screens` on pages that followed the house rule while flagging identical content on flat or dark
+  grounds. Removed the `backgroundColor !== pageBg` branch from `frame()` so `filled` measures text glyph
+  boxes, media (`img`, `video`, `canvas`, `picture`, `svg`, `iframe`, `background-image`) and `[data-ui]`
+  fragments, and recalibrated the `empty-screens` threshold to `< 0.15`.
+- **Off-screen skip links satisfied `first-action` and polluted button metrics (`scripts/lib/probe.mjs:299-313,505`).**
+  `checkVisibility()` returns `true` for elements positioned off-screen (such as `.skip { position: absolute;
+  top: -60px }`), and `b.top < H` was true for negative `top`. Skip links therefore counted as visible hero
+  buttons (`inHero >= 1`) and silenced `first-action` on first screens with no visible CTA. Added off-screen,
+  `srHidden` and opacity guards to the button collector and required `b.top >= 0 && b.top < H` for `inHero`
+  and `heroLabels`.
+- **`no-footage` warned on zero-video pages even when a photograph had the slow drift or scroll-linked move
+  allowed by `SKILL.md` step 9 (`scripts/lib/probe.mjs:415-435`, `scripts/inspect.mjs:110-127,172`,
+  `scripts/lib/rules.mjs:143`).** `probe()` and `MOTION_RECORDER` now count `movingPictures` (real pictures
+  or their `<picture>` / `<figure>` wrappers carrying a continuous/long CSS or Web Animation or a
+  scroll-linked transform change across scroll steps), and `no-footage` only warns when both `videoCount` and
+  `movingPictures` are zero.
+- **`lint.mjs` failed neutral legibility scrims (`linear-gradient`) that `SKILL.md:376`,
+  `references/imagery.md:217-218` and `probe.mjs:335-339` explicitly allow (`scripts/lint.mjs:129-155`).**
+  Added neutral-scrim detection to `lint.mjs` so `linear-gradient(...)` rules whose stops are neutral
+  black/white/grey with changing alpha or `transparent` pass without requiring `fs-ignore`, matching the
+  runtime check in `probe.mjs`.
+- **`proof-names-off-both-edges` mandated a 40s `translateX` marquee while `SKILL.md` never mentioned
+  marquees (`library/sections.json:1459-1460`, `SKILL.md:385`, `references/tells.md:115`).** Updated
+  `proof-names-off-both-edges` to keep the edge-cropped line of names still, and added the explicit marquee
+  rule to `SKILL.md` House rules and `references/tells.md` §7 (aligning with `references/creative-patterns.md` §2).
+- **`name-as-monument` and `film-title-on-bottom-edge` gave three conflicting sizing rules for two-word names
+  over 12 characters (`library/directions.json:27-28,52`, `library/heroes.json:176-178`).** Reconciled
+  `idea`, `composition`, `pitfalls`, `blueprint` and `headline` into one rule: one line at
+  `clamp(150px, 17.5vw, 290px)` (`16–24vw`) up to about 12 characters; stacked on two lines (or cropped at
+  the viewport edge) at `clamp(120px, 12.5vw, 210px)` (`12–16vw`, never below `12vw`) when longer.
+- **`draw.mjs --options <n>` printed the requested `n` in the heading even when `--tone` or other filters
+  narrowed the pool to fewer directions (`scripts/draw.mjs:234-238`).** The heading now prints
+  `options.length` and includes a note when filters narrowed the pool below `n`.
+
 ## 2.2.2 — 2026-10-17
 
 Four issues reproduced from `skill-bugs-for-review.md` and fixed across the scripts, library and reference docs.

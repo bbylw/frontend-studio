@@ -298,9 +298,12 @@ export function probe() {
   // --- buttons
   const buttons = [];
   for (const el of document.querySelectorAll('a, button, [role="button"], input[type="submit"]')) {
-    if (isHidden(el)) continue;
-    const r = el.getBoundingClientRect(); if (r.height < 28 || r.height > 84 || r.width < 64 || r.width > Math.min(W * 0.96, 900)) continue;
-    const cs = getComputedStyle(el); let bg = rgba(cs.backgroundColor); const bw = parseFloat(cs.borderTopWidth) || 0;
+    if (isHidden(el) || srHidden(el)) continue;
+    const r = el.getBoundingClientRect();
+    if (r.bottom + SY <= 0 || r.top + SY < 0 || r.right <= 0 || r.left >= W) continue;
+    if (r.height < 28 || r.height > 84 || r.width < 64 || r.width > Math.min(W * 0.96, 900)) continue;
+    const cs = getComputedStyle(el); if (+cs.opacity < 0.1) continue;
+    let bg = rgba(cs.backgroundColor); const bw = parseFloat(cs.borderTopWidth) || 0;
     const grad = cs.backgroundImage.includes('gradient(');
     if (grad && bg.a < 0.5) { const first = cs.backgroundImage.match(/(rgba?\([^)]+\)|oklch\([^)]+\)|color\([^)]+\)|#[0-9a-f]{3,8})/i); if (first) bg = rgba(first[1]); }
     if (bg.a < 0.5 && bw < 1) continue;
@@ -413,18 +416,32 @@ export function probe() {
   // pictures that were not drawn by the page's own code: photographs, footage, raster artwork.
   // Inline SVG and .svg files do not count; cropped interface fragments (data-ui) are counted apart.
   const svgSrc = (u) => /\.svg(\?|#|$)|^data:image\/svg/i.test(u || '');
-  let realPictures = 0, videoCount = 0; const pictureSamples = [];
+  const hasPictureMotion = (el) => [el, el.closest('picture'), el.closest('figure')].filter(Boolean).some((node) => {
+    const cs = getComputedStyle(node);
+    const dur = Math.max(0, ...cs.animationDuration.split(',').map((s) => parseFloat(s) * (/ms/i.test(s) ? 0.001 : 1) || 0));
+    if (cs.animationName !== 'none' && (cs.animationIterationCount.includes('infinite') || dur >= 4 || (cs.animationTimeline && !/^(auto|none)$/.test(cs.animationTimeline)))) return true;
+    const anims = typeof node.getAnimations === 'function' ? node.getAnimations() : [];
+    return anims.some((a) => { const t = a.effect?.getTiming?.(); return t && (t.iterations === Infinity || Number(t.duration) >= 4000 || (a.timeline && a.timeline !== document.timeline)); });
+  });
+  let realPictures = 0, videoCount = 0, movingPictures = 0; const pictureSamples = [];
   for (const el of all) {
     if (el.closest('[data-ui]') || el.closest('svg') || isHidden(el)) continue;
     const r = el.getBoundingClientRect(); if (r.width < 120 || r.height < 90 || r.width * r.height < 160 * 120) continue;
     if (el.tagName === 'IMG') {
       const src = el.currentSrc || el.src;
-      if (el.naturalWidth > 0 && !svgSrc(src)) { realPictures++; if (pictureSamples.length < 8) pictureSamples.push(src.split('/').pop().slice(0, 48)); }
+      if (el.naturalWidth > 0 && !svgSrc(src)) {
+        realPictures++;
+        if (hasPictureMotion(el)) movingPictures++;
+        if (pictureSamples.length < 8) pictureSamples.push(src.split('/').pop().slice(0, 48));
+      }
       continue;
     }
-    if (el.tagName === 'VIDEO') { realPictures++; videoCount++; continue; }
+    if (el.tagName === 'VIDEO') { realPictures++; videoCount++; movingPictures++; continue; }
     const bg = getComputedStyle(el).backgroundImage;
-    if (bg && bg.includes('url(')) { const u = (bg.match(/url\(["']?([^"')]+)/) || [])[1]; if (!svgSrc(u)) realPictures++; }
+    if (bg && bg.includes('url(')) {
+      const u = (bg.match(/url\(["']?([^"')]+)/) || [])[1];
+      if (!svgSrc(u)) { realPictures++; if (hasPictureMotion(el)) movingPictures++; }
+    }
   }
   const uiPictures = [...document.querySelectorAll('[data-ui]')].filter((el) => { if (isHidden(el)) return false; const r = el.getBoundingClientRect(); return r.width >= 300 && r.height >= 200; }).length;
   // --- pictures laid on a saturated ground
@@ -483,7 +500,7 @@ export function probe() {
     viewport: { w: W, h: H },
     page: { height: pageH, screens: round(pageH / H, 1), words,
       img: document.images.length, video: document.querySelectorAll('video').length, canvas: document.querySelectorAll('canvas').length, svg: document.querySelectorAll('svg').length, sections: document.querySelectorAll('section').length,
-      horizontalOverflow: doc.scrollWidth > W + 2 ? doc.scrollWidth - W : 0, overflowCulprits, uiFragments, uiAbuse, realPictures, videoCount, uiPictures, pictureSamples, canvasArt, blendText, sideScrollers, brokenImages, onSaturatedGround, emoji: [...new Set(emoji)].slice(0, 10) },
+      horizontalOverflow: doc.scrollWidth > W + 2 ? doc.scrollWidth - W : 0, overflowCulprits, uiFragments, uiAbuse, realPictures, videoCount, movingPictures, uiPictures, pictureSamples, canvasArt, blendText, sideScrollers, brokenImages, onSaturatedGround, emoji: [...new Set(emoji)].slice(0, 10) },
     hero: heroOut, h1,
     headings: headingStats.slice(0, 40),
     headingSummary: { count: headingStats.length, maxLines: Math.max(0, ...headingStats.map((h) => h.lines)), over2Lines: headingStats.filter((h) => h.lines > 2 && h.kind !== 'statement').length, statements: headingStats.filter((h) => h.kind === 'statement').length, centered: headingStats.filter((h) => h.align === 'center').length, medianWords: below.length ? below.map((h) => h.words).sort((a, b) => a - b)[Math.floor(below.length / 2)] : null, mixedFontHeadings: headingStats.filter((h) => h.mixedFonts).length },
@@ -502,7 +519,7 @@ export function probe() {
       button: filledBtns.length ? { bg: mode(filledBtns.map((b) => b.bg)), hsl: mode(filledBtns.map((b) => b.bgHsl)), fg: mode(filledBtns.map((b) => b.fg)) } : null,
       lowContrast: lowContrast.slice(0, 6),
     },
-    buttons: { count: buttons.length, inHero: buttons.filter((b) => b.top < H).length, radius: mode(buttons.map((b) => b.radius)), height: mode(buttons.map((b) => b.h)), withShadow: buttons.filter((b) => b.shadow).length, withGradient: buttons.filter((b) => b.gradient).length, mono: buttons.filter((b) => b.mono).length, upper: buttons.filter((b) => b.upper).length, heroLabels: buttons.filter((b) => b.top < H).map((b) => b.text).filter(Boolean).slice(0, 5) },
+    buttons: { count: buttons.length, inHero: buttons.filter((b) => b.top >= 0 && b.top < H).length, radius: mode(buttons.map((b) => b.radius)), height: mode(buttons.map((b) => b.h)), withShadow: buttons.filter((b) => b.shadow).length, withGradient: buttons.filter((b) => b.gradient).length, mono: buttons.filter((b) => b.mono).length, upper: buttons.filter((b) => b.upper).length, heroLabels: buttons.filter((b) => b.top >= 0 && b.top < H).map((b) => b.text).filter(Boolean).slice(0, 5) },
     surfaces: { shadowStatic, shadowOverlay, shadowSamples, gradients, scrims, gradientSamples, gradientText, hairlines, hairlineSamples, outlinedBoxes, dashed, blurred, roundedBoxes, boxRadius: mode(boxRadii) ?? 0, squareMedia, roundedMedia, mediaRadius: mode(mediaRadii) ?? 0, textShadow: texts.filter((t) => t.textShadow).length, cardRows: cardRows.slice(0, 8) },
     heroMedia: heroMedia.slice(0, 4), nav,
     fontsLoaded: [...loaded].slice(0, 12),
@@ -577,9 +594,7 @@ export function frame() {
     if (pinned && area && over / area >= 0.15) pinnedOver.push({ text: label(el, direct), share: Math.min(1, Math.round((over / area) * 100) / 100) });
   }
   hitStyle.remove();
-  // 2. how much of the screen holds anything: text glyph boxes, media, or a ground that differs from the page's
-  const opaque = (c) => c && c !== 'transparent' && !/rgba\([^)]*,\s*0\)$/.test(c);
-  const pageBg = [document.body, document.documentElement].map((e) => getComputedStyle(e).backgroundColor).find(opaque) || 'rgb(255, 255, 255)';
+  // 2. how much of the screen holds content: text glyph boxes, media, or an interface fragment
   const textRects = [];
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT); const rg = document.createRange();
   for (let n = walker.nextNode(); n; n = walker.nextNode()) {
@@ -592,10 +607,9 @@ export function frame() {
     if (textRects.some((r) => x >= r.left - 6 && x <= r.right + 6 && y >= r.top - 4 && y <= r.bottom + 4)) { filled++; continue; }
     let el = document.elementFromPoint(x, y);
     for (let i = 0; el && i < 6 && el !== document.body && el !== document.documentElement; i++, el = el.parentElement) {
-      if (/^(IMG|VIDEO|CANVAS|PICTURE|svg|IFRAME)$/.test(el.tagName) || el.closest('svg')) { filled++; break; }
+      if (/^(IMG|VIDEO|CANVAS|PICTURE|svg|IFRAME)$/.test(el.tagName) || el.closest('svg, [data-ui]')) { filled++; break; }
       const cs = getComputedStyle(el);
       if (cs.backgroundImage !== 'none') { filled++; break; }
-      const bg = cs.backgroundColor; if (bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') { if (bg !== pageBg) filled++; break; }
     }
   }
   // 3. the large text in view, to spot one statement held on screen for screen after screen

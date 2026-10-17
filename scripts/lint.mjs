@@ -126,6 +126,33 @@ for (const file of files) {
         if (inUi && (id === 'hairline' || id === 'outlined-box' || id === 'shadow')) continue;
         if (id === 'hairline' && /sr-only|visually-hidden|clip(-path)?\s*:|outline/i.test(line + selector)) continue; // screen-reader helpers and focus outlines are not rules
         if ((id === 'copy' || id === 'cta-copy' || id === 'emoji') && /^\s*(\/\/|\/\*|\*|import |@import|<!--)/.test(line)) continue;
+        if (id === 'gradient' && !/(radial|conic)-gradient\(|\bbg-(gradient|linear|radial|conic)-|\b(from|via)-(?!\[?0)[a-z]+-\d{2,3}\b/.test(line)) {
+          const chunk = lines.slice(i, i + 6).join(' ');
+          const grads = [...chunk.matchAll(/linear-gradient\(((?:[^()]+|\([^()]*\))+)\)/gi)];
+          const isScrim = (g) => {
+            if (/oklch|oklab|color\(|lab\(|lch\(|var\(/i.test(g)) return false;
+            const rgbs = [...g.matchAll(/rgba?\(([^)]+)\)/gi)].map((mm) => mm[1].split(/[,\s/]+/).filter(Boolean));
+            const hsls = [...g.matchAll(/hsla?\(([^)]+)\)/gi)].map((mm) => mm[1].split(/[,\s/]+/).filter(Boolean));
+            const hexes = [...g.matchAll(/#([0-9a-f]{3,8})\b/gi)].map((mm) => mm[1]);
+            if (!rgbs.length && !hsls.length && !hexes.length) return false;
+            const rgbNeutral = rgbs.every((c) => { const n = c.slice(0, 3).map( parseFloat ); return n.length === 3 && Math.max(...n) - Math.min(...n) <= 14; });
+            const hslNeutral = hsls.every((c) => parseFloat(c[1]) === 0);
+            const hexNeutral = hexes.every((h) => {
+              const expand = h.length === 3 || h.length === 4 ? [...h].map((ch) => ch + ch).join('') : h;
+              if (expand.length !== 6 && expand.length !== 8) return false;
+              const r = parseInt(expand.slice(0, 2), 16), gr = parseInt(expand.slice(2, 4), 16), b = parseInt(expand.slice(4, 6), 16);
+              return Math.max(r, gr, b) - Math.min(r, gr, b) <= 14;
+            });
+            if (!rgbNeutral || !hslNeutral || !hexNeutral) return false;
+            const hasAlpha = /\btransparent\b/i.test(g)
+              || rgbs.some((c) => c.length > 3 && (/%/.test(c[3]) ? parseFloat(c[3]) < 100 : parseFloat(c[3]) < 1))
+              || hsls.some((c) => c.length > 3 && (/%/.test(c[3]) ? parseFloat(c[3]) < 100 : parseFloat(c[3]) < 1))
+              || hexes.some((h) => (h.length === 4 && h[3].toLowerCase() !== 'f') || (h.length === 8 && h.slice(6).toLowerCase() !== 'ff'));
+            const stripped = g.replace(/rgba?\([^)]+\)|hsla?\([^)]+\)|#[0-9a-f]{3,8}\b|\b(to|top|bottom|left|right|deg|rad|turn|grad|in|srgb|transparent)\b|[-+\d.%px,\s/]/gi, '');
+            return hasAlpha && !/[a-z]/i.test(stripped);
+          };
+          if (grads.length > 0 && grads.every((m) => isScrim(m[1]))) continue;
+        }
         const m = line.match(re);
         if (m) findings.push({ level: RELAXED.has(id) && level === 'FAIL' ? 'WARN' : level, id, file: rel, line: i + 1, match: m[0].trim().slice(0, 70), message: RELAXED.has(id) ? message + ' Tolerated in product mode while it stays in its documented role.' : message });
       }

@@ -382,6 +382,7 @@ column says how `product` mode treats each one; `references/product-surfaces.md`
 | **No glass.** No backdrop blur panels, no floating pill navigation. | A plain bar: wordmark, a few links, one action. | A single blurred sticky header is allowed. |
 | **No emoji, no gradient blobs, no decorative shapes, no fake dashboards of grey bars.** | A real picture, a real interface fragment, or nothing. | Unchanged. |
 | **No styled accent word** in a headline (italic, serif, coloured, underlined). | One face, one colour. The words carry the emphasis. | Unchanged. |
+| **No ticker or logo marquee.** A kinetic marquee of large display type is conditional on the direction (`references/creative-patterns.md` §2). | Set names or logos still, or crop a static line at the viewport edges. When a direction's own signature move is a kinetic marquee: one per page, paused on hover, stopped under `prefers-reduced-motion`. | Never in `product` mode. |
 | **Two typefaces at most,** usually one. | The dealt type system. | Three at most: a text face, a heading face, and a data/mono face in the literal-data role above. |
 
 Three places keep their own conventions and are left alone by the inspector: real code in

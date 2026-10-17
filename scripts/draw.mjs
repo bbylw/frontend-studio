@@ -231,7 +231,11 @@ if (opt('redraw')) {
   if (opt('options')) {
     const n = Math.max(2, Math.min(5, Number(opt('options')) || 3));
     const options = dealOptions(input, n);
-    console.log(`# ${n} directions dealt for this brief\n`);
+    console.log(`# ${options.length} direction${options.length === 1 ? '' : 's'} dealt for this brief\n`);
+    if (options.length < n) {
+      const filters = [`--sector ${input.sector}`, input.tone ? `--tone ${input.tone}` : null, input.have.length ? `--have ${input.have.join(',')}` : null].filter(Boolean).join(' + ');
+      console.log(`Note: ${options.length} of ${n} requested directions matched (${filters} narrowed the pool to ${options.length}).\n`);
+    }
     console.log('Choose the one whose way of composing can best carry an idea from your inventory (SKILL.md steps 1 and 4), not the');
     console.log('most familiar one. Then deal it in full with the same command plus `--direction <id>` (and without --options).\n');
     for (const d of options) {
