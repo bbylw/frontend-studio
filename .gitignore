@@ -1,0 +1,7 @@
+# draw.mjs writes its sheet and the inspector writes its screenshots into .frontend-studio/
+# in whatever directory it is run from, which is sometimes this one.
+.frontend-studio/
+node_modules/
+*.log
+.DS_Store
+Thumbs.db
