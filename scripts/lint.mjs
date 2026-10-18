@@ -125,21 +125,56 @@ for (const { file, lines, localVars } of fileEntries) {
     return out;
   };
   // Tailwind classes may be wrapped over lines inside one opening tag; read that tag, not just the line
-  const tagAt = (i) => {
-    const startsTag = (s) => s.lastIndexOf('<') > s.lastIndexOf('>');
-    const quoteOpen = (s) => {
-      const m = s.match(/class(?:Name)?\s*=\s*(["'`])/);
-      return Boolean(m) && !s.slice(m.index + m[0].length).includes(m[1]);
+  const tagAt = (i, pos = 0) => {
+    const clean = (s) => s.replace(/\[[^\]]*\]|=>|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`/g, (m) => ' '.repeat(m.length));
+    const lastOpenTag = (s) => {
+      const m = [...s.matchAll(/<[A-Za-z_$]/g)];
+      return m.length ? m[m.length - 1].index : -1;
     };
-    let text = lines[i];
-    if (!startsTag(text)) {
-      for (let j = i - 1; j >= 0 && j > i - 12; j--) {
-        text = lines[j] + ' ' + text;
-        if (startsTag(text)) break;
+    let startLine = i; let startCol = 0;
+    const cb = clean(lines[i].slice(0, pos));
+    const open0 = lastOpenTag(cb); const close0 = cb.lastIndexOf('>');
+    if (open0 > close0) {
+      startCol = open0;
+    } else if (/@apply\b/.test(cb)) {
+      startCol = cb.lastIndexOf('@apply');
+    } else if (close0 !== -1 || cb.includes(';')) {
+      startCol = Math.max(close0, cb.lastIndexOf(';')) + 1;
+    } else {
+      for (let j = i - 1; j >= 0 && j >= i - 12; j--) {
+        const cj = clean(lines[j]);
+        const openJ = lastOpenTag(cj); const closeJ = cj.lastIndexOf('>');
+        if (openJ > closeJ) { startLine = j; startCol = openJ; break; }
+        if (/@apply\b/.test(cj)) { startLine = j; startCol = cj.lastIndexOf('@apply'); break; }
+        if (closeJ !== -1 || cj.includes(';')) break;
+        startLine = j; startCol = 0;
       }
     }
-    for (let j = i + 1; j < lines.length && j <= i + 12 && (startsTag(text) || quoteOpen(text)); j++) text += ' ' + lines[j];
-    return text;
+    const startedAtTag = lines[startLine][startCol] === '<';
+    let out = ''; let quote = ''; let brackets = 0;
+    for (let j = startLine; j < lines.length && j <= i + 12; j++) {
+      const s = lines[j];
+      const from = j === startLine ? startCol : 0;
+      if (j > startLine) out += ' ';
+      for (let k = from; k < s.length; k++) {
+        const ch = s[k];
+        out += ch;
+        if (quote) {
+          if (ch === '\\') { if (k + 1 < s.length) out += s[++k]; }
+          else if (ch === quote) quote = '';
+        } else if (brackets > 0) {
+          if (ch === '[') brackets++;
+          else if (ch === ']') brackets--;
+        } else if (ch === '"' || ch === "'" || ch === '`') {
+          quote = ch;
+        } else if (ch === '[') {
+          brackets = 1;
+        } else if (j > i || k >= pos) {
+          if (startedAtTag ? (ch === '>' && s[k - 1] !== '=') : (ch === ';' || ch === '}' || ch === '<')) return out;
+        }
+      }
+    }
+    return out;
   };
   const isScrim = (rawG) => {
     let g = resolveVars(rawG);
@@ -235,32 +270,35 @@ for (const { file, lines, localVars } of fileEntries) {
             }
             if (cssOk) cssOk = args.length === lineGradCount && args.every((a) => isScrim(a));
           }
-          const twText = tagAt(i);
-          const hasTw = /\bbg-(gradient|linear)-|\b(from|via)-(?!\[?0)[a-z]+-\d{2,3}\b/.test(twText);
+          const twMatches = [...line.matchAll(/\bbg-(?:gradient|linear)-|\b(?:from|via)-(?!\[?0)[a-z]+-\d{2,3}\b/gi)];
+          const hasTw = twMatches.length > 0;
           let twOk = true;
           if (hasTw) {
-            const dirCount = (twText.match(/\bbg-(?:gradient|linear)-/g) || []).length;
-            const stops = [...twText.matchAll(/(?<![-\w])(from|via|to)-([^\s"'`;<>]+)/g)].filter((m) => !/^\d+%$/.test(m[2]));
-            const fromCount = stops.filter((m) => m[1] === 'from').length;
-            let twAlpha = false;
-            const stopOk = (val) => {
-              if (val === 'transparent') { twAlpha = true; return true; }
-              const m = val.match(/^(?:(black|white)|(?:neutral|zinc|stone|gray|grey)-\d{2,3})(?:\/(\d+(?:\.\d+)?%?|\[\d+(?:\.\d+)?%?\]))?$/);
-              if (m) {
-                if (m[2]) {
-                  const raw = m[2].replace(/^\[|\]$/g, '');
-                  if (/%/.test(raw) ? parseFloat(raw) < 100 : parseFloat(raw) < (raw.includes('.') ? 1 : 100)) twAlpha = true;
+            const tags = [...new Set(twMatches.map((m) => tagAt(i, m.index)))];
+            twOk = tags.every((twText) => {
+              const dirCount = (twText.match(/\bbg-(?:gradient|linear)-/g) || []).length;
+              const stops = [...twText.matchAll(/(?<![-\w])(from|via|to)-([^\s"'`;<>]+)/g)].filter((m) => !/^\d+%$/.test(m[2]));
+              const fromCount = stops.filter((m) => m[1] === 'from').length;
+              let twAlpha = false;
+              const stopOk = (val) => {
+                if (val === 'transparent') { twAlpha = true; return true; }
+                const m = val.match(/^(?:(black|white)|(?:neutral|zinc|stone|gray|grey)-\d{2,3})(?:\/(\d+(?:\.\d+)?%?|\[\d+(?:\.\d+)?%?\]))?$/);
+                if (m) {
+                  if (m[2]) {
+                    const raw = m[2].replace(/^\[|\]$/g, '');
+                    if (/%/.test(raw) ? parseFloat(raw) < 100 : parseFloat(raw) < (raw.includes('.') ? 1 : 100)) twAlpha = true;
+                  }
+                  return true;
                 }
-                return true;
-              }
-              const arb = val.match(/^\[([^\]]+)\]$/)?.[1]?.replace(/_/g, ' ');
-              if (arb && isScrim(`${arb}, transparent`)) {
-                if (isScrim(`${arb}, #000`)) twAlpha = true;
-                return true;
-              }
-              return false;
-            };
-            twOk = stops.length > 0 && fromCount >= dirCount && stops.every((m) => stopOk(m[2])) && twAlpha;
+                const arb = val.match(/^\[([^\]]+)\]$/)?.[1]?.replace(/_/g, ' ');
+                if (arb && isScrim(`${arb}, transparent`)) {
+                  if (isScrim(`${arb}, #000`)) twAlpha = true;
+                  return true;
+                }
+                return false;
+              };
+              return stops.length > 0 && fromCount >= dirCount && stops.every((m) => stopOk(m[2])) && twAlpha;
+            });
           }
           if ((lineGradCount > 0 || hasTw) && cssOk && twOk) continue;
         }
