@@ -118,7 +118,7 @@ consistent. Let the typeface and the composition carry the character.
 | --- | --- | --- |
 | Headlines ≤ 2 lines | **Unchanged, FAIL** | A dashboard title wrapping to three lines pushes the working area off the first screen. |
 | Statements are paragraphs | **Unchanged** | An oversized intro sentence still reads as a headline. |
-| No eyebrows | **Relaxed to a warning** | A panel title above a large figure, or a `<label>` above its control, is a working convention — the detector cannot tell it from a decorative kicker, so it warns. A kicker above the screen's own title is still an eyebrow. |
+| No eyebrows | **Relaxed to a warning** | A panel title above a large figure, or a `<label>` above its control, is a working convention — the detector cannot tell it from a decorative kicker, so the gate only warns (`WARN`) in `product` mode; a kicker above the screen's own title is still an eyebrow and must be rejected in review. |
 | No monospace | **Relaxed to allowed, in the literal-data role** | IDs, timestamps, hashes, currency columns and log output are genuinely tabular and genuinely literal. Monospace as a *voice* — a mono nav label, a mono caption, a mono "technical" kicker — is still banned. |
 | No index numbering | **Relaxed where the number is data** | Row numbers, ranks, line numbers and counts are information. `01 / 02 / 03` decorating a list of three features is still banned. |
 | No thin rules | **Relaxed inside tables, lists and fields** | A table without its rules is unreadable, and a `divide-y` list is often the correct dense form. Hairlines as *page ornament* between sections are still banned. |

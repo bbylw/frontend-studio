@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.2.4 — 2026-10-18
+
+Five neutral-scrim whitelist, library blueprint and documentation issues reproduced from `skill-scrim-and-library-gaps-for-review.md` and fixed.
+
+### Fixed
+
+- **6-line lookahead window in `lint.mjs` caused a valid neutral scrim to fail when any decorative `linear-gradient(` appeared within the next 5 lines (`scripts/lint.mjs:184-190`).** `lint.mjs` previously collected all `linear-gradient(...)` matches across `lines.slice(i, i + 6).join(' ')` and required every match in the 6-line chunk to pass `isScrim()`. Filtered chunk matches to `m.index < line.length` and verified against `line`'s own `linear-gradient(` count so multi-line declarations starting on line `i` still parse across up to 6 lines while gradients on subsequent lines are judged only on their own lines.
+- **Pre-guard in `lint.mjs` blocked Tailwind neutral scrim utilities (`bg-linear-to-t from-black/55 to-transparent`, `bg-gradient-to-t from-black/55 to-transparent`) from entering the scrim whitelist (`scripts/lint.mjs:183-216`).** Replaced the `!bg-(gradient|linear)-` exclusion guard with a Tailwind linear-scrim validator that accepts linear gradient utilities when all `from-*`/`via-*`/`to-*` stops on the line are neutral (`black`, `white`, `transparent`, neutral grey scale or neutral arbitrary stops) and at least one stop carries alpha `< 100%` or `transparent`.
+- **Neutral scrims written with modern CSS colour functions (`oklch()`, `oklab()`, `lab()`, `lch()`, `color()`, `color-mix()`), CSS custom properties (`var()`) or named neutral colours (`black`, `white`) failed in both `lint.mjs` and `probe.mjs` (`scripts/lint.mjs:114-169`, `scripts/lib/probe.mjs:338-352`).** Extended `lint.mjs` to resolve in-scope CSS custom properties (`--*`), unwrap `color-mix(in <space>, ...)`, and validate neutral chroma/alpha across `oklch()`, `oklab()`, `lch()`, `lab()`, `color()`, `rgb()`/`rgba()`, `hsl()`/`hsla()`, `#hex` and `black`/`white`/`transparent`. Removed the `exotic` rejection in `probe.mjs` and evaluated all gradient stop tokens through the canvas `rgba()` normaliser plus `oklch`/`oklab`/`lch`/`lab` chroma checks.
+- **Two library blueprints (`about-pinned-title-portraits` in `library/sections.json:2713` and `pinned-title-over-portraits` in `library/heroes.json:87`) still specified 5–6 and 5–8 portraits in a pinned run while `directions.json`, `motions.json` and `inspect.mjs` capped pins at 2–3 screens.** Updated both blueprints to specify two or three portraits (holding the pinned run to two or three screens).
+- **`references/tells.md:9-10,17,49` defined `banned` unconditionally as "the inspector fails the page" and listed decorative kickers as banned in both modes, contradicting `RELAXED` (`WARN` only for `eyebrow` under `--surface product`) and `references/product-surfaces.md:121`.** Clarified in `references/tells.md` and `references/product-surfaces.md` that `banned` means the gate fails in `page` mode while entries in the §5 relaxation table (including `eyebrow`) downgrade to `WARN` under `--surface product` so the reviewer rejects a kicker above the screen's own title by hand.
+
 ## 2.2.3 — 2026-10-17
 
 Seven measurement, linter, library and documentation issues reproduced from `skill-aesthetics-for-review.md` and fixed.

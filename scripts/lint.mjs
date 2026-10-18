@@ -101,10 +101,76 @@ const findings = [];
 // a designer looking at the screen can tell "a table's rules" from "a decoration". The rule still speaks.
 const RELAXED = surface === 'product' ? new Set(['mono', 'numbering', 'eyebrow', 'micro-label', 'hairline', 'outlined-box', 'shadow']) : new Set();
 let emDashes = 0;
-for (const file of files) {
+const cssVars = new Map();
+const fileEntries = files.map((file) => {
+  const text = readFileSync(file, 'utf8');
+  const localVars = new Map();
+  for (const m of text.matchAll(/(--[a-zA-Z0-9_-]+)\s*:\s*([^;}"'`\r\n]+)/g)) {
+    localVars.set(m[1], m[2].trim());
+    cssVars.set(m[1], m[2].trim());
+  }
+  return { file, lines: text.split(/\r?\n/), localVars };
+});
+for (const { file, lines, localVars } of fileEntries) {
   const rel = relative(process.cwd(), file).split('\\').join('/');
-  const lines = readFileSync(file, 'utf8').split(/\r?\n/);
   let inCode = false; let selector = ''; let pending = '';
+  const resolveVars = (str) => {
+    let out = str;
+    for (let pass = 0; pass < 3 && /var\(/i.test(out); pass++) {
+      out = out.replace(/var\(\s*(--[a-zA-Z0-9_-]+)\s*(?:,\s*([^)]+))?\)/gi, (full, name, fb) => {
+        const val = localVars.get(name) ?? cssVars.get(name) ?? (fb ? fb.trim() : null);
+        return val != null ? val : full;
+      });
+    }
+    return out;
+  };
+  const isScrim = (rawG) => {
+    let g = resolveVars(rawG);
+    if (/var\(/i.test(g)) return false;
+    let mixAlpha = false;
+    g = g.replace(/color-mix\(\s*in\s+[a-z0-9-]+(?:\s+(?:shorter|longer|increasing|decreasing)\s+hue)?\s*,((?:[^()]+|\([^()]*\))+)\)/gi, (_, inner) => {
+      if (/\btransparent\b/i.test(inner)) mixAlpha = true;
+      return inner;
+    });
+    if (/color-mix\(/i.test(g)) return false;
+    const to255 = (v) => (/%/.test(v) ? parseFloat(v) * 2.55 : parseFloat(v));
+    const rgbs = [...g.matchAll(/rgba?\(([^)]+)\)/gi)].map((mm) => mm[1].split(/[,\s/]+/).filter(Boolean));
+    const hsls = [...g.matchAll(/hsla?\(([^)]+)\)/gi)].map((mm) => mm[1].split(/[,\s/]+/).filter(Boolean));
+    const lchs = [...g.matchAll(/(ok)?lch\(([^)]+)\)/gi)].map((mm) => ({ ok: !!mm[1], c: mm[2].split(/[,\s/]+/).filter(Boolean) }));
+    const labs = [...g.matchAll(/(ok)?lab\(([^)]+)\)/gi)].map((mm) => ({ ok: !!mm[1], c: mm[2].split(/[,\s/]+/).filter(Boolean) }));
+    const colorFns = [...g.matchAll(/(?<![a-z-])color\(([^)]+)\)/gi)].map((mm) => mm[1].split(/[,\s/]+/).filter(Boolean));
+    const hexes = [...g.matchAll(/#([0-9a-f]{3,8})\b/gi)].map((mm) => mm[1]);
+    const withoutFns = g.replace(/(?:rgba?|hsla?|oklch|oklab|lch|lab|color)\([^)]+\)|#[0-9a-f]{3,8}\b/gi, ' ');
+    const named = [...withoutFns.matchAll(/\b(black|white)\b/gi)].map((mm) => mm[1]);
+    if (!rgbs.length && !hsls.length && !lchs.length && !labs.length && !colorFns.length && !hexes.length && !named.length) return false;
+    const rgbNeutral = rgbs.every((c) => { const n = c.slice(0, 3).map(to255); return n.length === 3 && n.every(Number.isFinite) && Math.max(...n) - Math.min(...n) <= 14; });
+    const hslNeutral = hsls.every((c) => c.length >= 3 && (c[1] === 'none' || parseFloat(c[1]) <= 5 || parseFloat(c[2]) === 0 || parseFloat(c[2]) === 100));
+    const lchNeutral = lchs.every(({ ok, c }) => c.length >= 3 && (c[1] === 'none' || parseFloat(c[1]) <= (ok ? 0.02 : 2) || parseFloat(c[0]) === 0));
+    const labNeutral = labs.every(({ ok, c }) => c.length >= 3 && [c[1], c[2]].every((v) => v === 'none' || Math.abs(parseFloat(v)) <= (ok ? 0.02 : 2)));
+    const colorNeutral = colorFns.every((c) => {
+      if (!/^(srgb|srgb-linear|display-p3|a98-rgb|prophoto-rgb|rec2020)$/i.test(c[0] || '')) return false;
+      const n = c.slice(1, 4).map((v) => (/%/.test(v) ? parseFloat(v) / 100 : parseFloat(v)));
+      return n.length === 3 && n.every(Number.isFinite) && Math.max(...n) - Math.min(...n) <= 0.055;
+    });
+    const hexNeutral = hexes.every((h) => {
+      const expand = h.length === 3 || h.length === 4 ? [...h].map((ch) => ch + ch).join('') : h;
+      if (expand.length !== 6 && expand.length !== 8) return false;
+      const r = parseInt(expand.slice(0, 2), 16), gr = parseInt(expand.slice(2, 4), 16), b = parseInt(expand.slice(4, 6), 16);
+      return Math.max(r, gr, b) - Math.min(r, gr, b) <= 14;
+    });
+    if (!rgbNeutral || !hslNeutral || !lchNeutral || !labNeutral || !colorNeutral || !hexNeutral) return false;
+    const alphaLt1 = (v) => v !== undefined && (/%/.test(v) ? parseFloat(v) < 100 : parseFloat(v) < 1);
+    const hasAlpha = mixAlpha
+      || /\btransparent\b/i.test(withoutFns)
+      || rgbs.some((c) => alphaLt1(c[3]))
+      || hsls.some((c) => alphaLt1(c[3]))
+      || lchs.some(({ c }) => alphaLt1(c[3]))
+      || labs.some(({ c }) => alphaLt1(c[3]))
+      || colorFns.some((c) => alphaLt1(c[4]))
+      || hexes.some((h) => (h.length === 4 && h[3].toLowerCase() !== 'f') || (h.length === 8 && h.slice(6).toLowerCase() !== 'ff'));
+    const stripped = withoutFns.replace(/\b(to|top|bottom|left|right|deg|rad|turn|grad|in|srgb|srgb-linear|display-p3|oklab|oklch|lab|lch|hsl|hwb|shorter|longer|increasing|decreasing|hue|transparent|black|white)\b|[-+\d.%px,\s/]/gi, '');
+    return hasAlpha && !/[a-z()]/i.test(stripped);
+  };
   lines.forEach((line, i) => {
     // track the CSS selector we are inside, so rules scoped to [data-ui] (interface fragments) keep their own lines
     if (line.includes('{')) {
@@ -126,32 +192,41 @@ for (const file of files) {
         if (inUi && (id === 'hairline' || id === 'outlined-box' || id === 'shadow')) continue;
         if (id === 'hairline' && /sr-only|visually-hidden|clip(-path)?\s*:|outline/i.test(line + selector)) continue; // screen-reader helpers and focus outlines are not rules
         if ((id === 'copy' || id === 'cta-copy' || id === 'emoji') && /^\s*(\/\/|\/\*|\*|import |@import|<!--)/.test(line)) continue;
-        if (id === 'gradient' && !/(radial|conic)-gradient\(|\bbg-(gradient|linear|radial|conic)-|\b(from|via)-(?!\[?0)[a-z]+-\d{2,3}\b/.test(line)) {
-          const chunk = lines.slice(i, i + 6).join(' ');
-          const grads = [...chunk.matchAll(/linear-gradient\(((?:[^()]+|\([^()]*\))+)\)/gi)];
-          const isScrim = (g) => {
-            if (/oklch|oklab|color\(|lab\(|lch\(|var\(/i.test(g)) return false;
-            const rgbs = [...g.matchAll(/rgba?\(([^)]+)\)/gi)].map((mm) => mm[1].split(/[,\s/]+/).filter(Boolean));
-            const hsls = [...g.matchAll(/hsla?\(([^)]+)\)/gi)].map((mm) => mm[1].split(/[,\s/]+/).filter(Boolean));
-            const hexes = [...g.matchAll(/#([0-9a-f]{3,8})\b/gi)].map((mm) => mm[1]);
-            if (!rgbs.length && !hsls.length && !hexes.length) return false;
-            const rgbNeutral = rgbs.every((c) => { const n = c.slice(0, 3).map( parseFloat ); return n.length === 3 && Math.max(...n) - Math.min(...n) <= 14; });
-            const hslNeutral = hsls.every((c) => parseFloat(c[1]) === 0);
-            const hexNeutral = hexes.every((h) => {
-              const expand = h.length === 3 || h.length === 4 ? [...h].map((ch) => ch + ch).join('') : h;
-              if (expand.length !== 6 && expand.length !== 8) return false;
-              const r = parseInt(expand.slice(0, 2), 16), gr = parseInt(expand.slice(2, 4), 16), b = parseInt(expand.slice(4, 6), 16);
-              return Math.max(r, gr, b) - Math.min(r, gr, b) <= 14;
-            });
-            if (!rgbNeutral || !hslNeutral || !hexNeutral) return false;
-            const hasAlpha = /\btransparent\b/i.test(g)
-              || rgbs.some((c) => c.length > 3 && (/%/.test(c[3]) ? parseFloat(c[3]) < 100 : parseFloat(c[3]) < 1))
-              || hsls.some((c) => c.length > 3 && (/%/.test(c[3]) ? parseFloat(c[3]) < 100 : parseFloat(c[3]) < 1))
-              || hexes.some((h) => (h.length === 4 && h[3].toLowerCase() !== 'f') || (h.length === 8 && h.slice(6).toLowerCase() !== 'ff'));
-            const stripped = g.replace(/rgba?\([^)]+\)|hsla?\([^)]+\)|#[0-9a-f]{3,8}\b|\b(to|top|bottom|left|right|deg|rad|turn|grad|in|srgb|transparent)\b|[-+\d.%px,\s/]/gi, '');
-            return hasAlpha && !/[a-z]/i.test(stripped);
-          };
-          if (grads.length > 0 && grads.every((m) => isScrim(m[1]))) continue;
+        if (id === 'gradient' && !/(radial|conic)-gradient\(|\bbg-(?:gradient-(?:radial|conic)|radial-|conic-)/i.test(line)) {
+          const lineGradCount = (line.match(/linear-gradient\(/gi) || []).length;
+          let cssOk = true;
+          if (lineGradCount > 0) {
+            const chunk = lines.slice(i, i + 6).join(' ');
+            const grads = [...chunk.matchAll(/linear-gradient\(((?:[^()]+|\((?:[^()]+|\([^()]*\))*\))+)\)/gi)].filter((m) => m.index < line.length);
+            cssOk = grads.length === lineGradCount && grads.every((m) => isScrim(m[1]));
+          }
+          const hasTw = /\bbg-(gradient|linear)-|\b(from|via)-(?!\[?0)[a-z]+-\d{2,3}\b/.test(line);
+          let twOk = true;
+          if (hasTw) {
+            const dirCount = (line.match(/\bbg-(?:gradient|linear)-/g) || []).length;
+            const stops = [...line.matchAll(/(?<![-\w])(from|via|to)-([^\s"'`;<>]+)/g)].filter((m) => !/^\d+%$/.test(m[2]));
+            const fromCount = stops.filter((m) => m[1] === 'from').length;
+            let twAlpha = false;
+            const stopOk = (val) => {
+              if (val === 'transparent') { twAlpha = true; return true; }
+              const m = val.match(/^(?:(black|white)|(?:neutral|zinc|stone|gray|grey)-\d{2,3})(?:\/(\d+(?:\.\d+)?%?|\[\d+(?:\.\d+)?%?\]))?$/);
+              if (m) {
+                if (m[2]) {
+                  const raw = m[2].replace(/^\[|\]$/g, '');
+                  if (/%/.test(raw) ? parseFloat(raw) < 100 : parseFloat(raw) < (raw.includes('.') ? 1 : 100)) twAlpha = true;
+                }
+                return true;
+              }
+              const arb = val.match(/^\[([^\]]+)\]$/)?.[1]?.replace(/_/g, ' ');
+              if (arb && isScrim(`${arb}, transparent`)) {
+                if (isScrim(`${arb}, #000`)) twAlpha = true;
+                return true;
+              }
+              return false;
+            };
+            twOk = stops.length > 0 && fromCount >= dirCount && stops.every((m) => stopOk(m[2])) && twAlpha;
+          }
+          if ((lineGradCount > 0 || hasTw) && cssOk && twOk) continue;
         }
         const m = line.match(re);
         if (m) findings.push({ level: RELAXED.has(id) && level === 'FAIL' ? 'WARN' : level, id, file: rel, line: i + 1, match: m[0].trim().slice(0, 70), message: RELAXED.has(id) ? message + ' Tolerated in product mode while it stays in its documented role.' : message });

@@ -7,15 +7,17 @@ component: every published "use this instead" list has become the next wave of t
 Replacements here are procedures (draw from the library, derive from the subject), not products.
 
 `scripts/inspect.mjs` and `scripts/lint.mjs` detect most entries. Status: **banned** means the
-inspector fails the page; **warned** means it flags it and you need a reason.
+inspector fails the page in `page` mode (entries in the `product-surfaces.md` §5 relaxation table drop from `FAIL` to `WARN` under `--surface product`, where the reviewer decides); **warned** means it flags it and you need a reason.
 
 **Product surfaces.** A handful of these entries are legitimate inside a working interface — monospace in
 the literal-data role, numbers that are real data, panel titles and field labels, compact column-header
 labels, rules inside tables and lists, a shadow on something that truly floats, compact tiles. Under
-`--surface product` they are warnings rather than failures. That relaxation is documented rule by rule,
-with the reasoning, in `product-surfaces.md` §5. Everything else in this file still applies in both modes:
-gradients, glow, emoji, the assistant palette, decorative kickers above a screen title, styled accent
-words and false proof are banned everywhere.
+`--surface product` they are warnings rather than failures (`eyebrow`, for example, only warns in `product`
+mode because the detector cannot tell a panel title or `<label>` from a decorative kicker above a screen
+title; a kicker above the screen's own title is still rejected in review, not by a gate `FAIL`). That
+relaxation is documented rule by rule, with the reasoning, in `product-surfaces.md` §5. The non-relaxed
+rules in this file still fail the gate in both modes: gradients, glow, emoji, the assistant palette and
+false proof.
 
 ## Contents
 
@@ -46,7 +48,7 @@ words and false proof are banned everywhere.
 
 | Tell | Status | Do instead |
 | --- | --- | --- |
-| Eyebrow / kicker: tiny tracked uppercase label above every heading | banned | Fold it into the heading, or delete |
+| Eyebrow / kicker: tiny tracked uppercase label above every heading | banned (`page`); warned (`product`, where a kicker above the screen title is rejected in review) | Fold it into the heading, or delete |
 | Pill badge above the hero headline ("New", "Beta", "Introducing") | banned | Say it in the supporting sentence |
 | One word of the headline in italic serif, colour or underline | warned | One face, one colour |
 | Bento grid of rounded tiles as the feature section | warned as card rows | A composed section; tiles only in the dense-tiles direction, filled, strict sizes |

@@ -336,9 +336,19 @@ export function probe() {
       if ((cs.webkitBackgroundClip || cs.backgroundClip || '').includes('text')) gradientText++;
       else if (b.area >= W * H * 0.02) {
         // neutral stops with changing alpha = a legibility scrim over media, not decoration
-        const stops = [...cs.backgroundImage.matchAll(/rgba?\(([^)]+)\)/g)].map((mm) => mm[1].split(/[,\s/]+/).filter(Boolean).map(Number));
-        const exotic = /oklch|oklab|color\(|lab\(|lch\(|hsl/.test(cs.backgroundImage);
-        const scrim = !exotic && stops.length > 0 && stops.every((c) => Math.max(c[0], c[1], c[2]) - Math.min(c[0], c[1], c[2]) <= 14) && stops.some((c) => c.length > 3 && c[3] < 1);
+        const bgImg = cs.backgroundImage.replace(/color-mix\(\s*in\s+[a-z0-9-]+(?:\s+(?:shorter|longer|increasing|decreasing)\s+hue)?\s*,((?:[^()]+|\([^()]*\))+)\)/gi, '$1');
+        const stopTokens = [...bgImg.matchAll(/(?:rgba?|hsla?|oklch|oklab|lab|lch|color)\([^)]+\)|#[0-9a-f]{3,8}\b|\b(?:transparent|black|white)\b/gi)].map((mm) => mm[0]);
+        const stops = stopTokens.map((tok) => rgba(tok));
+        const chromaOk = stopTokens.every((tok) => {
+          const lch = tok.match(/^(ok)?lch\(([^)]+)\)/i);
+          if (lch) { const c = lch[2].split(/[,\s/]+/).filter(Boolean); return c[1] === 'none' || parseFloat(c[1]) <= (lch[1] ? 0.02 : 2) || parseFloat(c[0]) === 0; }
+          const lab = tok.match(/^(ok)?lab\(([^)]+)\)/i);
+          if (lab) { const c = lab[2].split(/[,\s/]+/).filter(Boolean); return [c[1], c[2]].every((v) => v === 'none' || Math.abs(parseFloat(v)) <= (lab[1] ? 0.02 : 2)); }
+          return true;
+        });
+        const scrim = !/(radial|conic)-gradient\(/i.test(bgImg) && !/color-mix\(/i.test(bgImg) && stops.length > 0 && chromaOk
+          && stops.every((c) => Math.max(c.r, c.g, c.b) - Math.min(c.r, c.g, c.b) <= 14)
+          && stops.some((c) => c.a < 1);
         if (scrim) scrims++; else { gradients++; if (gradientSamples.length < 4) gradientSamples.push(label(el) + ' → ' + cs.backgroundImage.slice(0, 110)); }
       }
     }
