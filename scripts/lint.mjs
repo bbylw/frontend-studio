@@ -124,6 +124,23 @@ for (const { file, lines, localVars } of fileEntries) {
     }
     return out;
   };
+  // Tailwind classes may be wrapped over lines inside one opening tag; read that tag, not just the line
+  const tagAt = (i) => {
+    const startsTag = (s) => s.lastIndexOf('<') > s.lastIndexOf('>');
+    const quoteOpen = (s) => {
+      const m = s.match(/class(?:Name)?\s*=\s*(["'`])/);
+      return Boolean(m) && !s.slice(m.index + m[0].length).includes(m[1]);
+    };
+    let text = lines[i];
+    if (!startsTag(text)) {
+      for (let j = i - 1; j >= 0 && j > i - 12; j--) {
+        text = lines[j] + ' ' + text;
+        if (startsTag(text)) break;
+      }
+    }
+    for (let j = i + 1; j < lines.length && j <= i + 12 && (startsTag(text) || quoteOpen(text)); j++) text += ' ' + lines[j];
+    return text;
+  };
   const isScrim = (rawG) => {
     let g = resolveVars(rawG);
     if (/var\(/i.test(g)) return false;
@@ -136,17 +153,20 @@ for (const { file, lines, localVars } of fileEntries) {
     const to255 = (v) => (/%/.test(v) ? parseFloat(v) * 2.55 : parseFloat(v));
     const rgbs = [...g.matchAll(/rgba?\(([^)]+)\)/gi)].map((mm) => mm[1].split(/[,\s/]+/).filter(Boolean));
     const hsls = [...g.matchAll(/hsla?\(([^)]+)\)/gi)].map((mm) => mm[1].split(/[,\s/]+/).filter(Boolean));
+    const hwbs = [...g.matchAll(/hwb\(([^)]+)\)/gi)].map((mm) => mm[1].split(/[,\s/]+/).filter(Boolean));
     const lchs = [...g.matchAll(/(ok)?lch\(([^)]+)\)/gi)].map((mm) => ({ ok: !!mm[1], c: mm[2].split(/[,\s/]+/).filter(Boolean) }));
     const labs = [...g.matchAll(/(ok)?lab\(([^)]+)\)/gi)].map((mm) => ({ ok: !!mm[1], c: mm[2].split(/[,\s/]+/).filter(Boolean) }));
     const colorFns = [...g.matchAll(/(?<![a-z-])color\(([^)]+)\)/gi)].map((mm) => mm[1].split(/[,\s/]+/).filter(Boolean));
     const hexes = [...g.matchAll(/#([0-9a-f]{3,8})\b/gi)].map((mm) => mm[1]);
-    const withoutFns = g.replace(/(?:rgba?|hsla?|oklch|oklab|lch|lab|color)\([^)]+\)|#[0-9a-f]{3,8}\b/gi, ' ');
+    const withoutFns = g.replace(/(?:rgba?|hsla?|hwb|oklch|oklab|lch|lab|color)\([^)]+\)|#[0-9a-f]{3,8}\b/gi, ' ');
     const named = [...withoutFns.matchAll(/\b(black|white)\b/gi)].map((mm) => mm[1]);
-    if (!rgbs.length && !hsls.length && !lchs.length && !labs.length && !colorFns.length && !hexes.length && !named.length) return false;
+    if (!rgbs.length && !hsls.length && !hwbs.length && !lchs.length && !labs.length && !colorFns.length && !hexes.length && !named.length) return false;
     const rgbNeutral = rgbs.every((c) => { const n = c.slice(0, 3).map(to255); return n.length === 3 && n.every(Number.isFinite) && Math.max(...n) - Math.min(...n) <= 14; });
     const hslNeutral = hsls.every((c) => c.length >= 3 && (c[1] === 'none' || parseFloat(c[1]) <= 5 || parseFloat(c[2]) === 0 || parseFloat(c[2]) === 100));
-    const lchNeutral = lchs.every(({ ok, c }) => c.length >= 3 && (c[1] === 'none' || parseFloat(c[1]) <= (ok ? 0.02 : 2) || parseFloat(c[0]) === 0));
-    const labNeutral = labs.every(({ ok, c }) => c.length >= 3 && [c[1], c[2]].every((v) => v === 'none' || Math.abs(parseFloat(v)) <= (ok ? 0.02 : 2)));
+    // hwb is neutral when whiteness + blackness leave no room for the hue
+    const hwbNeutral = hwbs.every((c) => c.length >= 3 && parseFloat(c[1]) + parseFloat(c[2]) >= 100);
+    const lchNeutral = lchs.every(({ ok, c }) => c.length >= 3 && (c[1] === 'none' || parseFloat(c[1]) <= (ok ? 0.04 : 2) || parseFloat(c[0]) === 0));
+    const labNeutral = labs.every(({ ok, c }) => c.length >= 3 && [c[1], c[2]].every((v) => v === 'none' || Math.abs(parseFloat(v)) <= (ok ? 0.04 : 2)));
     const colorNeutral = colorFns.every((c) => {
       if (!/^(srgb|srgb-linear|display-p3|a98-rgb|prophoto-rgb|rec2020)$/i.test(c[0] || '')) return false;
       const n = c.slice(1, 4).map((v) => (/%/.test(v) ? parseFloat(v) / 100 : parseFloat(v)));
@@ -158,12 +178,13 @@ for (const { file, lines, localVars } of fileEntries) {
       const r = parseInt(expand.slice(0, 2), 16), gr = parseInt(expand.slice(2, 4), 16), b = parseInt(expand.slice(4, 6), 16);
       return Math.max(r, gr, b) - Math.min(r, gr, b) <= 14;
     });
-    if (!rgbNeutral || !hslNeutral || !lchNeutral || !labNeutral || !colorNeutral || !hexNeutral) return false;
+    if (!rgbNeutral || !hslNeutral || !hwbNeutral || !lchNeutral || !labNeutral || !colorNeutral || !hexNeutral) return false;
     const alphaLt1 = (v) => v !== undefined && (/%/.test(v) ? parseFloat(v) < 100 : parseFloat(v) < 1);
     const hasAlpha = mixAlpha
       || /\btransparent\b/i.test(withoutFns)
       || rgbs.some((c) => alphaLt1(c[3]))
       || hsls.some((c) => alphaLt1(c[3]))
+      || hwbs.some((c) => alphaLt1(c[3]))
       || lchs.some(({ c }) => alphaLt1(c[3]))
       || labs.some(({ c }) => alphaLt1(c[3]))
       || colorFns.some((c) => alphaLt1(c[4]))
@@ -196,15 +217,30 @@ for (const { file, lines, localVars } of fileEntries) {
           const lineGradCount = (line.match(/linear-gradient\(/gi) || []).length;
           let cssOk = true;
           if (lineGradCount > 0) {
-            const chunk = lines.slice(i, i + 6).join(' ');
-            const grads = [...chunk.matchAll(/linear-gradient\(((?:[^()]+|\((?:[^()]+|\([^()]*\))*\))+)\)/gi)].filter((m) => m.index < line.length);
-            cssOk = grads.length === lineGradCount && grads.every((m) => isScrim(m[1]));
+            // scan for the matching close paren instead of regex-matching a partial multi-line chunk,
+            // which backtracks exponentially when the call is still open
+            const window = lines.slice(i, Math.min(lines.length, i + 60)).join(' ');
+            const starts = [...line.matchAll(/linear-gradient\(/gi)].map((m) => m.index);
+            const args = [];
+            for (const at of starts) {
+              let depth = 0; let end = -1;
+              for (let k = at + 'linear-gradient'.length; k < window.length; k++) {
+                const ch = window[k];
+                if (ch === '(') depth++;
+                else if (ch === ')') { depth--; if (depth === 0) { end = k; break; } }
+                else if (ch === '"' || ch === "'") { const q = ch; k++; while (k < window.length && window[k] !== q) { if (window[k] === '\\') k++; k++; } }
+              }
+              if (end === -1) { cssOk = false; break; }
+              args.push(window.slice(at + 'linear-gradient('.length, end));
+            }
+            if (cssOk) cssOk = args.length === lineGradCount && args.every((a) => isScrim(a));
           }
-          const hasTw = /\bbg-(gradient|linear)-|\b(from|via)-(?!\[?0)[a-z]+-\d{2,3}\b/.test(line);
+          const twText = tagAt(i);
+          const hasTw = /\bbg-(gradient|linear)-|\b(from|via)-(?!\[?0)[a-z]+-\d{2,3}\b/.test(twText);
           let twOk = true;
           if (hasTw) {
-            const dirCount = (line.match(/\bbg-(?:gradient|linear)-/g) || []).length;
-            const stops = [...line.matchAll(/(?<![-\w])(from|via|to)-([^\s"'`;<>]+)/g)].filter((m) => !/^\d+%$/.test(m[2]));
+            const dirCount = (twText.match(/\bbg-(?:gradient|linear)-/g) || []).length;
+            const stops = [...twText.matchAll(/(?<![-\w])(from|via|to)-([^\s"'`;<>]+)/g)].filter((m) => !/^\d+%$/.test(m[2]));
             const fromCount = stops.filter((m) => m[1] === 'from').length;
             let twAlpha = false;
             const stopOk = (val) => {

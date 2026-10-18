@@ -1,5 +1,41 @@
 # Changelog
 
+## 2.2.6 — 2026-10-18
+
+Four boundary cases of the neutral-scrim whitelist, found by adversarial testing after 2.2.5.
+
+### Fixed
+
+- **Tailwind scrims whose class list wraps across lines.** The whitelist read only the line that carried
+  `bg-linear-to-t` (or `bg-gradient-to-t`), so a prettier-wrapped class list — the normal shape in a
+  Tailwind project — found no `from-*` stop on that line and failed. The check now reads the opening tag
+  that holds the class attribute, so a wrapped list resolves to the same stops as the one-line form.
+  Invalid wrapped lists (`from-red-500/50`, opaque `from-black to-white`) still fail.
+- **`hwb()` scrims.** The whitelist had no parser for `hwb()`, so a neutral white or black fade written
+  as `hwb(0 0% 100% / .55)` failed while the same colour in `rgb()` or hex passed. `hwb()` now passes
+  when whiteness plus blackness leave no room for the hue; a saturated `hwb()` still fails. Chrome
+  serialises it to `rgba()` at runtime, so inspect already agreed.
+- **Scrim declarations longer than six lines.** The whitelist looked ahead six lines for the closing
+  paren, so a fade written one stop per line failed. The scan now finds the matching close paren
+  directly, with no six-line bound.
+- **Warm near-neutral scrims and a lint/inspect split at the chroma edge.**
+  `oklch(0.97 0.02 80 / .55)` passed lint but failed inspect: lint judged chroma, inspect converted to
+  rgb and measured channel spread, and at a near-white L the conversion clips and widens the spread.
+  Both gates now use the same chroma bound (0.04 in the OK spaces; 2 in CIE `lch()`/`lab()`), and
+  inspect applies that bound to lch/lab tokens instead of the clipped rgb spread.
+  `oklch(0.97 0.03 80 / .55)` now passes both; `oklch(0.6 0.2 30)` and `oklch(0.97 0.05 80)` still fail.
+
+### Verified
+
+- Wrapped Tailwind with `class` on the tag line and with `<div>` on its own line: both pass; their
+  coloured and opaque variants still fail. Neutral `hwb()` passes; `hwb(0 10% 10%)` still fails.
+- An eight-line scrim declaration passes; the same lengthened form with coloured stops still fails.
+- The reproduction blocks from the review round behind 2.2.4: the window-contaminated scrim still
+  reports only the coloured line, the three Tailwind forms pass, and the runtime case still reads
+  `gradients 0 scrims 2`.
+- `lint.mjs` and `inspect.mjs` over the eleven build pages at 1440: findings, `filled` and surface
+  counts identical to 2.2.5. `audit.mjs`: 0 FAIL, 0 WARN.
+
 ## 2.2.5 — 2026-10-18
 
 One regression from 2.2.3, found by re-running the fixture matrix rather than by reading the diff.
