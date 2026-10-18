@@ -34,7 +34,7 @@
 | 2 | lint 误罚 + 两闸分裂 | `scripts/lint.mjs:273`、`:280` | 手写 Tailwind 风格 shim 时，CSS 选择器 `.bg-linear-to-t{…}` 与只带方向类的元素各罚一次，而运行时判同一页为合法 scrim | 中 |
 | 3 | inspect 误罚 | `scripts/lib/probe.mjs:441` | `data-ui` 子树里的 `<img>` 不计入 `realPictures`：四张真照片被算成 0 张照片 + 1 个界面碎片，照样 `FAIL few-pictures` | 中 |
 | 4 | 库与闸门矛盾 | `library/motions.json:28` 对比 `scripts/inspect.mjs:205`、`scripts/lib/probe.mjs:605` | 库把 curtain footer 当招牌动效发出，照它做的页面必吃 `FAIL covered-text` + `WARN long-pin` | 中 |
-| 5 | 口径不对称 | `scripts/lint.mjs:199`、`:210` 对比 `:203-204` | 同一支暖白纸色：写成 `#f3efe4`（通道差 15）两闸同罚，写成 `oklch(0.95 0.03 85)` 两闸同放 | 低-中 |
+| 5 | 口径不对称 | `scripts/lint.mjs:199`、`:210` 对比 `:203-204` | 同一支暖白纸色：写成 `#f3efe4`（通道差 15）两闸同罚，写成其精确 OK 换算 `oklch(0.952 0.015 90)` 两闸同放 | 低-中 |
 | 6 | 死代码 | `scripts/lint.mjs:46`、`scripts/inspect.mjs:46` | 两处都用 `direction.id === 'generative-art'` 推断 art 表面，而库里 22 个方向没有这个 id，`draw.mjs` 也拒绝它 | 低 |
 | 7 | 覆盖缺口 | `scripts/lib/probe.mjs:337`（`b.area >= W * H * 0.02`） | 6px 高的彩色品牌条 lint 罚得到、运行时看不见：小面积装饰渐变只有静态闸能发现 | 低 |
 
@@ -139,13 +139,13 @@ e4e561b   RESULT: 2 FAIL, 0 WARN — fix the FAILs before rendering.
 
 **修法有个坑**：只把括号补成 `var\(--tw\)` 会把 `shadow-*` 这条 Tailwind 检测分支一起吞回前瞻内部，等于顺手删掉功能。正确做法是前瞻收紧 + 给 class 上下文单独一条分支（例如要求同一行存在 `class=` / `style=` 或 `box-shadow:`）。同类泄漏请顺手扫一遍所有含 `(?!` 的规则：`alt-probe.cjs` 换个规则名即可复用。
 
-**现实影响**：`shadow` 是设计类文案的高频词。本轮五页里两页中招（渡轮页的图注"the whole reach in shadow"、天文台控制台的 HTML 注释）。
+**现实影响**：`shadow` 是设计类文案的高频词。本轮五页里两页中招：渡轮页的图注 "the whole reach in shadow"（最终稿用 `fs-ignore` 压住，`v226-ferry/index.html:731`），以及天文台控制台建页阶段的一条 HTML 注释——该页最终产物里已检索不到这条注释，所以这一半来自建页回报，无法从产物复核。
 
 ---
 
 ## 2. 手写 Tailwind 风格 shim 被误罚两处，而运行时判它合法
 
-**位置**：`scripts/lint.mjs:273`、`:280`
+**位置**：`scripts/lint.mjs:273`、`:280`、`:300`（`return` 行）
 
 ```js
 const twMatches = [...line.matchAll(/\bbg-(?:gradient|linear)-|\b(?:from|via)-(?!\[?0)[a-z]+-\d{2,3}\b/gi)];
@@ -202,13 +202,13 @@ gradients 0 scrims 1 | gradient findings: 0
 
 **版本定位**：`git archive 0f061e3`（2.2.5）跑同一页同样 2 FAIL，**不是 2.2.6 的回归**，是 2.2.4 引入 Tailwind 分支时的遗留。
 
-**现实影响**：本机取不到 Tailwind v4 Play CDN（jsdelivr / unpkg 均不可达），建页者只能自备同名工具类——正是这条路径被误罚。唯一出路是行尾 `fs-ignore`，而这个豁免**只在 `lint.mjs:242` 的判定和 `:333` 的结尾提示里出现，SKILL.md 与 references 一个字都没提**：建页者既没被文档告知它存在，也没被告知何时该用它。
+**现实影响**：本机取不到 Tailwind v4 Play CDN（jsdelivr / unpkg 均不可达），建页者只能自备同名工具类——正是这条路径被误罚。唯一出路是行尾 `fs-ignore`，而这个豁免在面向建页者的 `SKILL.md` 与 `references/` 里**一个字都没提**（repo 内它只作为实现细节出现在 `lint.mjs:242`、`:333` 以及 `CHANGELOG.md`/`NOTICE.md` 的注记里）：建页者既没被文档告知它存在，也没被告知何时该用它。
 
 ---
 
 ## 3. `data-ui` 会吞掉真照片，四张照片的页面仍判 `few-pictures`
 
-**位置**：`scripts/lib/probe.mjs:441`
+**位置**：`scripts/lib/probe.mjs:441`（照片跳过）、`:459`（碎片计数）
 
 ```js
 for (const el of all) {
@@ -219,7 +219,8 @@ for (const el of all) {
 
 - 计照片的循环整体跳过 `data-ui` 子树里的元素，`<img>` 也不例外。
 - `data-ui` 的语义在 `SKILL.md:390` 与 `references/imagery.md:230-233`：只给"裁切下来的界面碎片"，且明说"把标题或整个 section 包进去会失败"。实测恰恰相反——把四张照片包进去不会失败，只是照片被清零：闸门没有校验它包的是不是界面。
-- `rules.mjs:141` 的地板是 `pics < 4`（照片数 + 界面碎片数），此处 `0 + 1 = 1`，于是 `FAIL few-pictures`。反向也成立：真照片藏在 `data-ui` 里可以廉价凑满 4，把图片地板洗掉。
+- `rules.mjs:141` 的地板是 `pics < 4`（照片数 + 界面碎片数），此处 `0 + 1 = 1`，于是 `FAIL few-pictures`。
+- 反向也成立，但机制不是"照片数量"：`probe.mjs:459` 把**每个可见的 `data-ui` 根元素**（宽 ≥300、高 ≥200）各计 1 个界面碎片，不看里面装了什么。四个空 wrapper 即可把 `pics` 凑到 4、让 `few-pictures` 消失（下面第二段的实测）。
 
 **复现**
 
@@ -253,6 +254,31 @@ node "$SKILL/scripts/inspect.mjs" ui-pics.html --surface page --widths 1440 --ou
 node -e 'const r=require("./r.json");const m=r.viewports[0].metrics;const p=m.page||m;
 console.log("realPictures",p.realPictures,"| uiPictures",p.uiPictures,"| few-pictures findings:",r.findings.filter(f=>f.id==="few-pictures").length);
 console.log("FAILs:",r.findings.filter(f=>f.level==="FAIL").map(f=>f.id).join(", ")||"(none)");'
+echo
+echo "### 反向：四个空 data-ui wrapper 也算四个界面碎片"
+cat > empty-ui.html <<'EOF'
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>empty data-ui</title>
+<style>
+body{margin:0;font:16px/1.5 system-ui;color:#141414;background:#f6f4ef}
+header{padding:64px}
+h1{font-size:48px;line-height:1.05;margin:0 0 12px}
+p{max-width:62ch;font-size:19px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:0 64px 64px}
+.box{width:100%;height:260px;border:1px solid #ccc}
+</style></head>
+<body>
+<header><h1>Four empty fragments</h1><p>There are no images and no interface content anywhere on this page; the four boxes carry only the attribute.</p></header>
+<div class="grid">
+  <div class="box" data-ui></div><div class="box" data-ui></div>
+  <div class="box" data-ui></div><div class="box" data-ui></div>
+</div>
+</body></html>
+EOF
+node "$SKILL/scripts/inspect.mjs" empty-ui.html --surface page --widths 1440 --out out-empty --json > r-empty.json 2>/dev/null
+node -e 'const r=require("./r-empty.json");const m=r.viewports[0].metrics;const p=m.page||m;
+console.log("empty data-ui: realPictures",p.realPictures,"| uiPictures",p.uiPictures,"| few-pictures findings:",r.findings.filter(f=>f.id==="few-pictures").length);
+console.log("FAILs:",r.findings.filter(f=>f.level==="FAIL").map(f=>f.id).join(", ")||"(none)");'
 ```
 
 **实测**
@@ -260,22 +286,25 @@ console.log("FAILs:",r.findings.filter(f=>f.level==="FAIL").map(f=>f.id).join(",
 ```
 realPictures 0 | uiPictures 1 | few-pictures findings: 1
 FAILs: few-pictures, still-page
+
+empty data-ui: realPictures 0 | uiPictures 4 | few-pictures findings: 0
+FAILs: still-page
 ```
 
 （`still-page` 是我这个复现页没有动效，与本条无关。）
 
-**证伪条件**：若 `realPictures` 为 4，或 `few-pictures` 不触发，本条不成立。
+**证伪条件**：若 `realPictures` 为 4，或 `few-pictures` 不触发，或四个空 wrapper 仍报 `few-pictures`，本条不成立。
 
-**修法方向**：`data-ui` 只应豁免它**自己**那一块矩形，而不是整棵子树；或在 `probe` 里对 `data-ui` 内的 `<img>` 单独计数并保留在 `realPictures` 里。`probe.mjs:427` 的 `uiAbuse` 已经拦"包了 h1 或高过 1.6 屏"的滥用，但拦不住"包了几张照片"。
+**修法方向**：`data-ui` 只应豁免它**自己**那一块矩形，而不是整棵子树；或在 `probe` 里对 `data-ui` 内的 `<img>` 单独计数并保留在 `realPictures` 里。同时给 `uiPictures` 加内容校验，空 wrapper 不应算碎片。`probe.mjs:427` 的 `uiAbuse` 已经拦"包了 h1 或高过 1.6 屏"的滥用，但拦不住"包了几张照片"，也拦不住空 wrapper。
 
 ---
 
 ## 4. 库发出的招牌动效 curtain footer，被自家闸门判 FAIL
 
-**位置**：`library/motions.json:28`（由 `library/directions.json:329`、`library/heroes.json:215` 作为招牌动效发出）对比 `scripts/inspect.mjs:205` 与 `scripts/lib/probe.mjs:605`
+**位置**：`library/motions.json:28-30`（由 `library/directions.json:329`、`library/heroes.json:215` 作为招牌动效发出）对比 `scripts/inspect.mjs:205` 与 `scripts/lib/probe.mjs:605`
 
 ```js
-// motions.json:28 —— "Build with a sticky footer at the bottom and a main element with its own background and a higher stacking order. No JavaScript."
+// motions.json:28-30 —— "Build with a sticky footer at the bottom and a main element with its own background and a higher stacking order. No JavaScript."
 // inspect.mjs:205 —— if (coveredText.length …) findings.push({ level: 'FAIL', id: 'covered-text', …
 ```
 
@@ -341,7 +370,7 @@ WARN long-pin | The same large text stays on screen for 4 screens in a row: "Blu
 
 **位置**：`scripts/lint.mjs:199`（rgb 通道差 ≤ 14）与 `:210`（hex 同一标尺）对比 `:203-204`（OK 系彩度 ≤ 0.04）
 
-**机制**：2.2.6 把 OK 系彩度上限从 0.02 抬到 0.04（并让运行时对 lch/lab token 免做 rgb 通道差检查，因为转换会在近白端截断放大差值），但 rgb/hex 一侧仍是 14/255。两条标尺不再对应同一支颜色：`#f3efe4` 通道差 15，越线；`oklch(0.95 0.03 85)` 彩度 0.03，在界内。两闸各自内部是一致的（下面实测两边同结论），不一致的是**政策**。
+**机制**：2.2.6 把 OK 系彩度上限从 0.02 抬到 0.04（并让运行时对 lch/lab token 免做 rgb 通道差检查，因为转换会在近白端截断放大差值），但 rgb/hex 一侧仍是 14/255。`#f3efe4` 的精确 OK 换算是 `oklch(0.952 0.015 90)`：彩度 0.015，远在 0.04 界内；同一支颜色写成 hex，通道差 15，越线。两闸各自内部是一致的（下面实测两边同结论），不一致的是**政策**。
 
 **复现**
 
@@ -355,7 +384,7 @@ cat > warm-hex.html <<'EOF'
 </style></head>
 <body><div class="wash">text over a warm paper wash</div></body></html>
 EOF
-sed 's|#f3efe4|oklch(0.95 0.03 85 / 0.9)|' warm-hex.html > warm-oklch.html
+sed 's|#f3efe4|oklch(0.952 0.015 90 / 0.9)|' warm-hex.html > warm-oklch.html
 echo "### 同一支暖白纸色，两种写法"
 node -e 'const h="#f3efe4",n=parseInt(h.slice(1),16);console.log("hex 通道差 =",Math.max((n>>16)&255,(n>>8)&255,n&255)-Math.min((n>>16)&255,(n>>8)&255,n&255),"（上限 14）")'
 for f in warm-hex warm-oklch; do
