@@ -1,5 +1,25 @@
 # Changelog
 
+## 2.2.8 — 2026-10-18
+
+Five gate boundary cases found by re-checking the 2.2.7 four-page round. No library data changed.
+
+### Fixed
+
+- **Shadow resets failing the static lint.** The `shadow` rule tested its negative lookahead after `\s*`, but that whitespace could backtrack to zero, so the assertion saw the space before the value and `box-shadow: none`, `box-shadow:none`, `box-shadow: var(--tw-shadow)` and `box-shadow: 0 0 #0000` all failed. The assertion now skips whitespace inside itself and requires a reset token to be the whole value, allowing an optional `!important` and CSS comments around it. Real `box-shadow`, `text-shadow`, `-webkit-box-shadow`, `drop-shadow()` and the Tailwind shadow classes still fail.
+- **Negative-z curtain footers measured as empty ground.** A sticky footer at `z-index:-1` is painted above the canvas, but `elementFromPoint` stops at BODY, so `filled` read an empty screen and `empty-screens` named screens that carried a visible footer. `frame()` now takes the next element from `elementsFromPoint` when the hit is BODY/HTML and neither root background paints over the footer. When html and body both paint their own background, body really does lie over the footer and nothing changes.
+- **`pinned-over-picture` on text behind the curtain.** `frame()` already marked sticky-footer text under an opaque main as curtain-covered for `covered-text` and `long-pin`, but the pinned-over test still recorded it. The push is now skipped for curtain-covered elements; pinned text that really slides across a picture still reports.
+- **Captioned photo tiles counted as card rows.** `probe()` exempted only `figure:not(:has(figcaption))`, so a gallery of captioned figures read as repeated boxed cards. A figure carrying `img`, `picture`, `video` or `canvas` is now exempt; inline `<svg>` is not, so a figure icon card still reaches the icon-cards rule. Rows of boxed text cards still warn.
+- **`picture-on-colour` citing a line a palette may not have.** The advice claimed the dealt palette carries a `pictures` line, but only the nine saturated-ground palettes do; `audit.mjs` requires it only when the page ground is saturated, and the other palettes with an in-band token have a saturated accent field. The advice now distinguishes the two cases.
+
+### Verified
+
+- Shadow fixture: `none`, `none !important`, `var(--tw-shadow)`, `0 0 #0000` and `text-shadow: none` pass, with a tab after the colon and with comments on either side of the value; real box and text shadows, `-webkit-box-shadow`, `class="shadow"`, `hover:shadow-md`, `@apply shadow`, `@apply shadow-md` and `drop-shadow` still fail; prose containing the word "shadow" passes.
+- Curtain fixtures: `z-index:-1` and `z-index:0` both read `filled [0.1,0.06,0.73,1]`, and `empty-screens` names screens 1 and 2 only. With html and body both painting, the hidden footer stays out of the count: `[0.07,0.06,0,0]`; with html painting and body transparent, the visible footer counts: `[0.06,0.09,0.63,0.8]`.
+- Card rows: two rows of captioned photo tiles report no `card-rows`; two rows of figures each topped with a small SVG icon still fail `icon-cards`; two rows of boxed text cards still warn. A pinned headline held over a photograph still reports `pinned-over-picture` at 100% overlap.
+- Anvil, which keeps its curtain footer: the false `pinned-over-picture` WARN at 1440 is gone, 0 FAIL / 0 WARN, and the 1440 `filled` array is unchanged. Broadside's last two desktop screens rise from `0.81, 0.56` to `0.91, 1` because its visible curtain footer is now counted; the screenshots show that footer.
+- All four 2.2.7 builds at 1440, 834 and 390: `lint.mjs` 0 findings, `inspect.mjs` 0 FAIL / 0 WARN. Relay, quarry and anvil keep their recorded `filled` arrays. `audit.mjs`: 0 FAIL, 0 WARN.
+
 ## 2.2.7 — 2026-10-18
 
 Resolves contradictions between static linter rules (`lint.mjs`), runtime inspector measurements (`inspect.mjs` / `probe.mjs`), and documentation (`SKILL.md`, `references/`) identified during gate consistency audit.

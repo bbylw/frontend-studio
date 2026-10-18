@@ -82,7 +82,7 @@ export function judge(m, { width = m.viewport.w, allow = [], surface = 'page' } 
   // It is a failure of the build, not of the picture, so it fails in both modes.
   if (m.page.onSaturatedGround?.length) add('FAIL', 'picture-on-colour', `${m.page.onSaturatedGround.length} picture(s) sit directly on a saturated ground: `
     + m.page.onSaturatedGround.slice(0, 4).map((x) => `${x.src || x.tag} ${x.w}x${x.hpx}px on ${x.ground} (${x.sat}% saturation, ${x.light}% light)`).join('; '),
-    'Move the picture into a neutral field and let the coloured ground carry type alone. A photograph on a mid-tone saturated ground reads as mud: the two colours fight and neither looks deliberate. This is what the `pictures` line on the dealt palette is for.');
+    'Move the picture into a neutral field and let the coloured ground carry type alone. A photograph on a mid-tone saturated ground reads as mud: the two colours fight and neither looks deliberate. If the dealt palette itself deals a saturated ground, its `pictures` line names the neutral field the pictures go in; on a palette whose ground is neutral, keep pictures off the coloured accent fields.');
 
   // --- surfaces
   const s = m.surfaces;

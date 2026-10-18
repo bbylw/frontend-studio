@@ -389,7 +389,7 @@ export function probe() {
   for (const b of big) {
     const p = b.el.parentElement; if (!p || seenParents.has(p)) continue; seenParents.add(p);
     // cards carry text; a row of photographs or media tiles is not a card row
-    const kids = [...p.children].filter((k) => { const r = k.getBoundingClientRect(); return r.width >= 150 && r.width < W * 0.9 && r.height >= 90 && !k.matches('img, picture, video, canvas, svg, figure:not(:has(figcaption))') && (k.innerText || '').trim().length >= 12; }); // full-width bands are sections, not cards
+    const kids = [...p.children].filter((k) => { const r = k.getBoundingClientRect(); return r.width >= 150 && r.width < W * 0.9 && r.height >= 90 && !k.matches('img, picture, video, canvas, svg, figure:has(img, picture, video, canvas)') && (k.innerText || '').trim().length >= 12; }); // full-width bands are sections, not cards
     if (kids.length < 3) continue;
     const boxed = kids.filter((k) => { const cs = getComputedStyle(k); return (rgba(cs.backgroundColor).a > 0.04 || parseFloat(cs.borderTopWidth) > 0 || cs.boxShadow !== 'none') && true; });
     if (boxed.length < 3) continue;
@@ -631,7 +631,7 @@ export function frame() {
     }
     if (total >= 4 && hidden / total >= 0.2) covered.push({ text: label(el, direct), share: Math.round((hidden / total) * 100) / 100 });
     if (cutTop) clipped.push({ text: label(el, direct) });
-    if (pinned && area && over / area >= 0.15) pinnedOver.push({ text: label(el, direct), share: Math.min(1, Math.round((over / area) * 100) / 100) });
+    if (pinned && area && over / area >= 0.15 && !curtainCovered.has(el)) pinnedOver.push({ text: label(el, direct), share: Math.min(1, Math.round((over / area) * 100) / 100) });
   }
   hitStyle.remove();
   // 2. how much of the screen holds content: text glyph boxes, media, an interface fragment, or a colour
@@ -641,6 +641,11 @@ export function frame() {
   // field only when something is set on it keeps both halves: an empty band still reads as empty ground,
   // a band carrying a heading reads as content, which is what it is.
   const opaque = (c) => c && c !== 'transparent' && !/rgba\([^)]*,\s*0(?:\.0+)?\)$/.test(c);
+  // A sticky footer at z-index:-1 paints above the canvas but elementFromPoint stops at BODY. Only when
+  // html and body both paint their own background does body actually lie over the footer; otherwise the
+  // body background is propagated to the canvas and the footer is what the screen shows.
+  const rootCS = getComputedStyle(document.documentElement), bodyCS = getComputedStyle(document.body);
+  const rootPainted = opaque(rootCS.backgroundColor) && (opaque(bodyCS.backgroundColor) || bodyCS.backgroundImage !== 'none');
   const docH = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight, H);
   const isFullPageWrapper = (el) => {
     if (!el || el === document.body || el === document.documentElement) return true;
@@ -693,6 +698,10 @@ export function frame() {
     const x = (gx + 0.5) * (W / 24), y = (gy + 0.5) * (H / 15); samples++;
     if (textRects.some((r) => x >= r.left - 6 && x <= r.right + 6 && y >= r.top - 4 && y <= r.bottom + 4)) { filled++; continue; }
     let el = document.elementFromPoint(x, y);
+    if (!rootPainted && (el === document.body || el === document.documentElement)) {
+      const under = document.elementsFromPoint(x, y).find((e) => e !== document.body && e !== document.documentElement);
+      if (under) el = under;
+    }
     for (let i = 0; el && i < 6 && el !== document.body && el !== document.documentElement; i++, el = el.parentElement) {
       if (/^(IMG|VIDEO|CANVAS|PICTURE|svg|IFRAME)$/.test(el.tagName) || el.closest('svg, [data-ui]')) { filled++; break; }
       const cs = getComputedStyle(el);
