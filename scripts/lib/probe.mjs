@@ -389,7 +389,8 @@ export function probe() {
   for (const b of big) {
     const p = b.el.parentElement; if (!p || seenParents.has(p)) continue; seenParents.add(p);
     // cards carry text; a row of photographs or media tiles is not a card row
-    const kids = [...p.children].filter((k) => { const r = k.getBoundingClientRect(); return r.width >= 150 && r.width < W * 0.9 && r.height >= 90 && !k.matches('img, picture, video, canvas, svg, figure:has(img, picture, video, canvas)') && (k.innerText || '').trim().length >= 12; }); // full-width bands are sections, not cards
+    const isMediaFigure = (k) => k.tagName === 'FIGURE' && (!k.querySelector('figcaption') || [...k.querySelectorAll('img, picture, video, canvas')].some((m) => { const mr = m.getBoundingClientRect(); return mr.width > 64 || mr.height > 64; }));
+    const kids = [...p.children].filter((k) => { const r = k.getBoundingClientRect(); return r.width >= 150 && r.width < W * 0.9 && r.height >= 90 && !k.matches('img, picture, video, canvas, svg') && !isMediaFigure(k) && (k.innerText || '').trim().length >= 12; }); // full-width bands are sections, not cards
     if (kids.length < 3) continue;
     const boxed = kids.filter((k) => { const cs = getComputedStyle(k); return (rgba(cs.backgroundColor).a > 0.04 || parseFloat(cs.borderTopWidth) > 0 || cs.boxShadow !== 'none') && true; });
     if (boxed.length < 3) continue;
@@ -622,7 +623,21 @@ export function frame() {
         }
         // the glyph box starts above the capitals (ascender room), so only a cut well into it is a real crop
         if (size >= 40 && r.top >= -4 && clips.some((c) => c.top > r.top + r.height * 0.3 && c.top < r.bottom - r.height * 0.2)) cutTop = true;
-        if (pinned) { area += r.width * r.height; for (const { m, r: pr } of pictures) { if (m.contains(el) || el.contains(m)) continue; const ox = Math.min(r.right, pr.right) - Math.max(r.left, pr.left), oy = Math.min(r.bottom, pr.bottom) - Math.max(r.top, pr.top); if (ox > 0 && oy > 0) over += ox * oy; } }
+        if (pinned) {
+          area += r.width * r.height;
+          for (const { m, r: pr } of pictures) {
+            if (m.contains(el) || el.contains(m)) continue;
+            const ox = Math.min(r.right, pr.right) - Math.max(r.left, pr.left), oy = Math.min(r.bottom, pr.bottom) - Math.max(r.top, pr.top);
+            if (ox > 0 && oy > 0) {
+              if (foot && !foot.contains(m)) {
+                const cx = (Math.max(r.left, pr.left) + Math.min(r.right, pr.right)) / 2, cy = (Math.max(r.top, pr.top) + Math.min(r.bottom, pr.bottom)) / 2;
+                const topEl = cx >= 0 && cx < W && cy >= 0 && cy < H ? document.elementFromPoint(cx, cy) : null;
+                if (!topEl || !foot.contains(topEl)) continue;
+              }
+              over += ox * oy;
+            }
+          }
+        }
       }
     }
     if (foot && total >= 4 && behindCurtain / total >= 0.5) {
@@ -631,7 +646,7 @@ export function frame() {
     }
     if (total >= 4 && hidden / total >= 0.2) covered.push({ text: label(el, direct), share: Math.round((hidden / total) * 100) / 100 });
     if (cutTop) clipped.push({ text: label(el, direct) });
-    if (pinned && area && over / area >= 0.15 && !curtainCovered.has(el)) pinnedOver.push({ text: label(el, direct), share: Math.min(1, Math.round((over / area) * 100) / 100) });
+    if (pinned && area && over / area >= 0.15 && !curtainCovered.has(el) && !(unit && curtainCovered.has(unit))) pinnedOver.push({ text: label(el, direct), share: Math.min(1, Math.round((over / area) * 100) / 100) });
   }
   hitStyle.remove();
   // 2. how much of the screen holds content: text glyph boxes, media, an interface fragment, or a colour
@@ -641,11 +656,12 @@ export function frame() {
   // field only when something is set on it keeps both halves: an empty band still reads as empty ground,
   // a band carrying a heading reads as content, which is what it is.
   const opaque = (c) => c && c !== 'transparent' && !/rgba\([^)]*,\s*0(?:\.0+)?\)$/.test(c);
-  // A sticky footer at z-index:-1 paints above the canvas but elementFromPoint stops at BODY. Only when
-  // html and body both paint their own background does body actually lie over the footer; otherwise the
-  // body background is propagated to the canvas and the footer is what the screen shows.
+  // A sticky footer at z-index:-1 paints above the canvas but elementFromPoint stops at BODY (or a
+  // transparent full-page wrapper such as #root). Only when html and body both paint their own background
+  // does body actually lie over the footer; otherwise the body background is propagated to the canvas and
+  // the footer is what the screen shows.
   const rootCS = getComputedStyle(document.documentElement), bodyCS = getComputedStyle(document.body);
-  const rootPainted = opaque(rootCS.backgroundColor) && (opaque(bodyCS.backgroundColor) || bodyCS.backgroundImage !== 'none');
+  const rootPainted = (opaque(rootCS.backgroundColor) || rootCS.backgroundImage !== 'none') && (opaque(bodyCS.backgroundColor) || bodyCS.backgroundImage !== 'none');
   const docH = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight, H);
   const isFullPageWrapper = (el) => {
     if (!el || el === document.body || el === document.documentElement) return true;
@@ -693,13 +709,14 @@ export function frame() {
     held.set(el, ok);
     return ok;
   };
+  const isTransparentRoot = (e) => e === document.body || e === document.documentElement || (Boolean(e) && isFullPageWrapper(e) && !opaque(getComputedStyle(e).backgroundColor) && getComputedStyle(e).backgroundImage === 'none');
   let filled = 0, samples = 0;
   for (let gx = 0; gx < 24; gx++) for (let gy = 0; gy < 15; gy++) {
     const x = (gx + 0.5) * (W / 24), y = (gy + 0.5) * (H / 15); samples++;
     if (textRects.some((r) => x >= r.left - 6 && x <= r.right + 6 && y >= r.top - 4 && y <= r.bottom + 4)) { filled++; continue; }
     let el = document.elementFromPoint(x, y);
-    if (!rootPainted && (el === document.body || el === document.documentElement)) {
-      const under = document.elementsFromPoint(x, y).find((e) => e !== document.body && e !== document.documentElement);
+    if (!rootPainted && isTransparentRoot(el)) {
+      const under = document.elementsFromPoint(x, y).find((e) => !isTransparentRoot(e));
       if (under) el = under;
     }
     for (let i = 0; el && i < 6 && el !== document.body && el !== document.documentElement; i++, el = el.parentElement) {
