@@ -604,7 +604,19 @@ export function frame() {
     if (pinned && area && over / area >= 0.15) pinnedOver.push({ text: label(el, direct), share: Math.min(1, Math.round((over / area) * 100) / 100) });
   }
   hitStyle.remove();
-  // 2. how much of the screen holds content: text glyph boxes, media, or an interface fragment
+  // 2. how much of the screen holds content: text glyph boxes, media, an interface fragment, or a colour
+  // field that carries something. The complaint that produced this pass was a *band with nothing on it*
+  // counting as full, so the field itself must not count — but the house style tells a build to replace
+  // cards and rules with whole fields of colour, and those fields are where the type sits. Counting a
+  // field only when something is set on it keeps both halves: an empty band still reads as empty ground,
+  // a band carrying a heading reads as content, which is what it is.
+  const opaque = (c) => c && c !== 'transparent' && !/rgba\([^)]*,\s*0\)$/.test(c);
+  const pageBg = [document.body, document.documentElement].map((e) => getComputedStyle(e).backgroundColor).find(opaque) || 'rgb(255, 255, 255)';
+  const holdsSomething = (el) => {
+    if ((el.textContent || '').trim().length > 0) return true;
+    if (el.querySelector('img, video, canvas, picture, svg, iframe')) return true;
+    return /^(IMG|VIDEO|CANVAS|PICTURE|IFRAME)$/.test(el.tagName);
+  };
   const textRects = [];
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT); const rg = document.createRange();
   for (let n = walker.nextNode(); n; n = walker.nextNode()) {
@@ -620,6 +632,11 @@ export function frame() {
       if (/^(IMG|VIDEO|CANVAS|PICTURE|svg|IFRAME)$/.test(el.tagName) || el.closest('svg, [data-ui]')) { filled++; break; }
       const cs = getComputedStyle(el);
       if (cs.backgroundImage !== 'none') { filled++; break; }
+      const bg = cs.backgroundColor;
+      if (bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') {
+        if (bg !== pageBg && holdsSomething(el)) filled++;
+        break;
+      }
     }
   }
   // 3. the large text in view, to spot one statement held on screen for screen after screen

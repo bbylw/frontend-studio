@@ -1,5 +1,40 @@
 # Changelog
 
+## 2.2.5 — 2026-10-18
+
+One regression from 2.2.3, found by re-running the fixture matrix rather than by reading the diff.
+
+### Fixed
+
+- **`filled` stopped counting a colour field that carries content, so the house style failed its own
+  `empty-screens` check.** 2.2.3 removed the branch that counted a background tone step as filled, and its
+  reasoning was sound: an empty tone-stepped section read `filled = 1.0`, which silenced `empty-screens`
+  precisely on the pages that follow the house rule. But that branch was also carrying every banded
+  section of such a page, since the house style replaces cards and rules with whole fields of colour, and
+  ink alone is a sparse measure of a screen. `page-studio.html`, which was 0 FAIL at 2.2.2, came back as
+  1 FAIL:
+
+  ```
+  [empty-screens] 2 of 9 desktop screens are almost empty ground (under 15% ...): screens 8, 9.
+  filled per screen: 0.43 0.69 0.26 0.43 0.35 0.54 0.29 0.08 0.13    <- 2.2.3
+  at 2.2.2:          0.44 0.69 0.71 0.43 0.35 0.54 0.78 0.49 0.53
+  ```
+
+  The screens it named were the closing statement and the footer, the two screens of a page where air is
+  most appropriate, and both are colour fields with three lines of type on them.
+
+  A field now counts only when something is set on it: it holds text, or an image, video, canvas, svg or
+  interface fragment. That keeps 2.2.3's improvement and drops the false positive, because the two cases
+  it was conflating are now measured differently:
+
+  | a full-bleed pine section | `filled` |
+  | --- | --- |
+  | empty | **0** — 2.2.2 read this as 1.0, the bug 2.2.3 was chasing |
+  | carrying one line of type | **1** — 2.2.3 read this as 0.08, the bug this release is chasing |
+
+  `page-studio.html` returns to 0 FAIL / 0 WARN with its per-screen `filled` back to the 2.2.2 values, and
+  an empty band still measures empty, so this is not a revert.
+
 ## 2.2.4 — 2026-10-18
 
 Five neutral-scrim whitelist, library blueprint and documentation issues reproduced from `skill-scrim-and-library-gaps-for-review.md` and fixed.
