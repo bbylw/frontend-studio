@@ -334,7 +334,7 @@ export function probe() {
     }
     if (cs.backgroundImage.includes('gradient(')) {
       if ((cs.webkitBackgroundClip || cs.backgroundClip || '').includes('text')) gradientText++;
-      else if (b.area >= W * H * 0.02) {
+      else if (b.area >= W * H * 0.02 || (r.width >= W * 0.8 && r.height >= 4)) {
         // neutral stops with changing alpha = a legibility scrim over media, not decoration
         const bgImg = cs.backgroundImage.replace(/color-mix\(\s*in\s+[a-z0-9-]+(?:\s+(?:shorter|longer|increasing|decreasing)\s+hue)?\s*,((?:[^()]+|\([^()]*\))+)\)/gi, '$1');
         const stopTokens = [...bgImg.matchAll(/(?:rgba?|hsla?|hwb|oklch|oklab|lab|lch|color)\([^)]+\)|#[0-9a-f]{3,8}\b|\b(?:transparent|black|white)\b/gi)].map((mm) => mm[0]);
@@ -350,7 +350,7 @@ export function probe() {
           return true;
         });
         const scrim = !/(radial|conic)-gradient\(/i.test(bgImg) && !/color-mix\(/i.test(bgImg) && stops.length > 0 && chromaOk
-          && stops.every((c, i) => chromaFn(stopTokens[i]) || Math.max(c.r, c.g, c.b) - Math.min(c.r, c.g, c.b) <= 14)
+          && stops.every((c, i) => chromaFn(stopTokens[i]) || Math.max(c.r, c.g, c.b) - Math.min(c.r, c.g, c.b) <= 20)
           && stops.some((c) => c.a < 1);
         if (scrim) scrims++; else { gradients++; if (gradientSamples.length < 4) gradientSamples.push(label(el) + ' → ' + cs.backgroundImage.slice(0, 110)); }
       }
@@ -438,7 +438,7 @@ export function probe() {
   });
   let realPictures = 0, videoCount = 0, movingPictures = 0; const pictureSamples = [];
   for (const el of all) {
-    if (el.closest('[data-ui]') || el.closest('svg') || isHidden(el)) continue;
+    if (el.closest('svg') || isHidden(el)) continue;
     const r = el.getBoundingClientRect(); if (r.width < 120 || r.height < 90 || r.width * r.height < 160 * 120) continue;
     if (el.tagName === 'IMG') {
       const src = el.currentSrc || el.src;
@@ -456,7 +456,13 @@ export function probe() {
       if (!svgSrc(u)) { realPictures++; if (hasPictureMotion(el)) movingPictures++; }
     }
   }
-  const uiPictures = [...document.querySelectorAll('[data-ui]')].filter((el) => { if (isHidden(el)) return false; const r = el.getBoundingClientRect(); return r.width >= 300 && r.height >= 200; }).length;
+  const uiPictures = [...document.querySelectorAll('[data-ui]')].filter((el) => {
+    if (isHidden(el) || el.tagName === 'IMG') return false;
+    const r = el.getBoundingClientRect();
+    if (r.width < 300 || r.height < 200) return false;
+    const textLen = (el.innerText || '').replace(/\s+/g, ' ').trim().length;
+    return textLen >= 8 || !!el.querySelector('input, button, select, textarea, table, code, pre, [role="button"], [role="tab"], [role="row"], [role="grid"], [role="menu"], [role="listbox"], [role="dialog"]');
+  }).length;
   // --- pictures laid on a saturated ground
   // The first opaque ground above a picture. A picture dropped straight onto a mid-tone saturated ground
   // reads as mud: the two colours fight and neither looks deliberate. It is the commonest way a bold
@@ -552,6 +558,19 @@ export function frame() {
   const covered = [], clipped = [], pinnedOver = [];
   const label = (el, direct) => (el.innerText || direct).replace(/\s+/g, ' ').trim().slice(0, 48);
   const pinnedLow = (el) => { for (let p = el; p && p !== document.body; p = p.parentElement) { const pcs = getComputedStyle(p); if (pcs.position === 'fixed' || pcs.position === 'sticky') return !pinnedTop(el); } return false; };
+  // A sticky/fixed footer waiting beneath an opaque <main> (the curtain-footer signature move) is uncovered
+  // only at the end of the scroll; while the page body above it still covers it, it is behind the curtain,
+  // not a covered headline or a pinned statement held in view.
+  const inStickyFooter = (el) => {
+    const f = el.closest('footer, [role="contentinfo"]');
+    if (!f) return null;
+    for (let p = f; p && p !== document.body; p = p.parentElement) {
+      const pos = getComputedStyle(p).position;
+      if (pos === 'sticky' || pos === 'fixed') return f;
+    }
+    return null;
+  };
+  const curtainCovered = new WeakSet();
   // Does the element found on top actually paint anything there? A transparent layout box does not hide text.
   const paints = (hit, el) => {
     for (let p = hit; p && p !== document.body && !p.contains(el); p = p.parentElement) {
@@ -581,9 +600,10 @@ export function frame() {
     // the boxes that clip this text (overflow other than visible, or a clip-path)
     const clips = []; for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) { const pcs = getComputedStyle(p); if (pcs.overflowY !== 'visible' || pcs.overflowX !== 'visible' || pcs.clipPath !== 'none') clips.push(p.getBoundingClientRect()); }
     const pinned = size >= 32 && pinnedLow(el);
+    const foot = inStickyFooter(el);
     // lines of one heading set as separate spans overlap each other's glyph boxes; that is not a collision
     const unit = el.closest('h1, h2, h3, h4, h5, h6, p, blockquote');
-    const range = document.createRange(); let total = 0, hidden = 0, cutTop = false, area = 0, over = 0;
+    const range = document.createRange(); let total = 0, hidden = 0, behindCurtain = 0, cutTop = false, area = 0, over = 0;
     for (const node of el.childNodes) {
       if (node.nodeType !== 3 || !node.nodeValue.trim()) continue;
       range.selectNodeContents(node);
@@ -595,12 +615,19 @@ export function frame() {
         for (const dy of [-0.2, 0.2]) for (const fx of [0.12, 0.37, 0.63, 0.88]) {
           const x = r.left + r.width * fx, y = r.top + r.height * 0.55 + band * dy; if (x < 0 || x >= W || y < 0 || y >= H) continue;
           total++; const hit = document.elementFromPoint(x, y);
-          if (hit && hit !== el && !el.contains(hit) && !hit.contains(el) && !pinnedTop(hit) && !(unit && unit.contains(hit) && !/^(IMG|VIDEO|CANVAS|PICTURE|svg)$/.test(hit.tagName) && !hit.closest('svg')) && paints(hit, el)) hidden++;
+          if (hit && hit !== el && !el.contains(hit) && !hit.contains(el) && !pinnedTop(hit) && !(unit && unit.contains(hit) && !/^(IMG|VIDEO|CANVAS|PICTURE|svg)$/.test(hit.tagName) && !hit.closest('svg')) && paints(hit, el)) {
+            if (foot && !foot.contains(hit)) behindCurtain++;
+            else hidden++;
+          }
         }
         // the glyph box starts above the capitals (ascender room), so only a cut well into it is a real crop
         if (size >= 40 && r.top >= -4 && clips.some((c) => c.top > r.top + r.height * 0.3 && c.top < r.bottom - r.height * 0.2)) cutTop = true;
         if (pinned) { area += r.width * r.height; for (const { m, r: pr } of pictures) { if (m.contains(el) || el.contains(m)) continue; const ox = Math.min(r.right, pr.right) - Math.max(r.left, pr.left), oy = Math.min(r.bottom, pr.bottom) - Math.max(r.top, pr.top); if (ox > 0 && oy > 0) over += ox * oy; } }
       }
+    }
+    if (foot && total >= 4 && behindCurtain / total >= 0.5) {
+      curtainCovered.add(el);
+      if (unit) curtainCovered.add(unit);
     }
     if (total >= 4 && hidden / total >= 0.2) covered.push({ text: label(el, direct), share: Math.round((hidden / total) * 100) / 100 });
     if (cutTop) clipped.push({ text: label(el, direct) });
@@ -679,7 +706,7 @@ export function frame() {
   }
   // 3. the large text in view, to spot one statement held on screen for screen after screen
   const big = [...new Set([...document.querySelectorAll('h1, h2, h3, h4, h5, h6, p, blockquote, li, a, button, span, div')].filter((el) => {
-    if (isHidden(el)) return false;
+    if (isHidden(el) || curtainCovered.has(el)) return false;
     const cs = getComputedStyle(el);
     if (parseFloat(cs.fontSize) < 32 || cs.visibility === 'hidden' || +cs.opacity < 0.3) return false;
     if (!/^(H[1-6]|P|BLOCKQUOTE)$/.test(el.tagName)) {

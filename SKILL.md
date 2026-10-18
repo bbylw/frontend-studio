@@ -316,8 +316,11 @@ browser at 1440, 768 and 390 pixels, measures it (headline line counts, type siz
 colours, rules, shadows, gradients, contrast, overflow, how many elements really move) and saves
 screenshots to `.frontend-studio/inspect/`. Fix every `FAIL`. Treat each `WARN` as wrong unless you can
 defend it to a designer in one sentence. Re-run until there are no `FAIL`s. Do not argue with the meter and
-do not hide things from it. The inspector serves local files over a throwaway local server; if the surface
-must also open straight from the file system, open `index.html` that way once before you finish.
+do not hide things from it (when a source line must keep a pattern that is a static false positive or an
+explicitly documented exception while the rendered page remains clean, a line comment `fs-ignore` silences
+`lint.mjs` on that line; `inspect.mjs` still measures the rendered result). The inspector serves local files
+over a throwaway local server; if the surface must also open straight from the file system, open
+`index.html` that way once before you finish.
 
 ### 8. Look
 

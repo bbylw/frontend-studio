@@ -110,8 +110,9 @@ dividers, cards and background decoration at once.
 - Do not wash a photograph with the brand colour. Either leave it alone, or commit to a real treatment
   for every image on the page (all greyscale, or all untouched).
 - Text over a photograph needs a calm region. If there is none, move the text off the image. A neutral
-  scrim (black or the ink colour, 30–55% opacity, flat or fading over the text area only) is the one
-  gradient the inspector allows.
+  scrim (black, white, or a near-neutral paper/ink tone within 20/255 RGB channel spread or 0.04 OKLCH
+  chroma, 30–55% opacity, flat or fading to transparent over the text area only) is the one gradient both
+  gates allow.
 - A flat field sampled from a photograph (its sky, its shadow) makes a section sit with that image.
 
 ### A saturated ground is the one that fails

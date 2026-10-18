@@ -1,5 +1,26 @@
 # Changelog
 
+## 2.2.7 — 2026-10-18
+
+Resolves contradictions between static linter rules (`lint.mjs`), runtime inspector measurements (`inspect.mjs` / `probe.mjs`), and documentation (`SKILL.md`, `references/`) identified during gate consistency audit.
+
+### Fixed
+
+- **Static lint regex leaks on English prose.** The `shadow` regex had an unescaped parenthesized lookahead in its class token alternative, causing the subpattern to terminate prematurely and match the word "shadow" in English running text or CSS comments (`/* shadow-box */`). Fixed the lookahead boundary so standard prose passes while real CSS shadows (`box-shadow`, `drop-shadow`) remain caught.
+- **Tailwind and CSS scrim detection split.** `lint.mjs` treated CSS selector classes matching `\.(?:bg-)?(?:linear|gradient)-[^\s{,]+` as banned utility classes. It now separates CSS selector definitions from HTML class usages, and tracks custom CSS class declarations containing legal neutral scrim gradients (e.g. `.hero-scrim { background: linear-gradient(...); }`), so applied scrim helper classes are not falsely rejected.
+- **`data-ui` suppression of real photographs.** `probe.mjs` previously skipped `<img>` elements nested under any `[data-ui]` ancestor during picture counting. The gate now counts genuine raster photos regardless of wrapper placement, and ensures empty `[data-ui]` containers lacking interactive controls or text content are not counted as interface fragments.
+- **Curtain footers triggering false `covered-text` findings.** Sticky revelation footers (`position: sticky; bottom: 0; z-index: -1`) intentionally reveal headline typography as preceding page screens scroll past them. `frame()` now accounts for sticky footer coverage in multi-screen layouts, avoiding false positives on intentional curtain layouts.
+- **Asymmetric scrim chroma/neutrality tolerances.** Hex/RGB scrim stops were restricted to a 10/255 channel spread while OKLCH stops permitted up to 0.04 chroma (~20/255 sRGB equivalent). The channel spread limit for hex/RGB scrims in both `lint.mjs` and `probe.mjs` is normalized to 20/255, and OKLCH color-mix gradients are recognized alongside standard linear gradients.
+- **Dead `generative-art` direction override in `lint.mjs` and `inspect.mjs`.** Removed obsolete fallback looking for `generative-art` direction when reading sheet surface mode, ensuring explicit direction sheets and `--surface` flags take precedence cleanly.
+- **Mobile tablet portrait height fallback in `inspect.mjs`.** Set explicit default viewport height (1024px) for 768px tablet width testing when window height is undefined, matching the standard iPad portrait aspect ratio.
+
+### Documentation
+
+- Documented `fs-ignore` comment usage for line-level suppression in `SKILL.md` (Step 7 Gate).
+- Clarified static vs rendered gate analysis and product-mode eyebrow warnings in `references/tells.md`.
+- Documented neutral scrim colour tolerance (20/255 RGB spread / 0.04 OKLCH chroma) in `references/colour.md`.
+- Added CSS tokenizer whitespace requirement for `+` and `-` operators within `clamp()` and `calc()` expressions in `references/type.md`.
+
 ## 2.2.6 — 2026-10-18
 
 Four boundary cases of the neutral-scrim whitelist, found by adversarial testing after 2.2.5.

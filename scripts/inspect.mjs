@@ -43,7 +43,7 @@ const sheetCandidates = [
 for (const p of sheetCandidates) {
   if (existsSync(p)) { try { savedSheet = JSON.parse(readFileSync(p, 'utf8')); allow = [...new Set([...allow, ...(savedSheet.allow || [])])]; } catch {} break; }
 }
-const sheetSurface = savedSheet?.surface || savedSheet?.input?.surface || (savedSheet?.direction?.id === 'generative-art' ? 'art' : null);
+const sheetSurface = savedSheet?.surface || savedSheet?.input?.surface || null;
 const surface = ['product', 'art', 'page'].includes(surfaceArg)
   ? surfaceArg
   : ['product', 'art', 'page'].includes(sheetSurface)
@@ -76,7 +76,7 @@ if (!/^https?:\/\//.test(target)) {
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   url = `http://127.0.0.1:${server.address().port}/${relative(root, file).split(sep).map(encodeURIComponent).join('/')}`;
 }
-const HEIGHT = { 1440: 900, 1280: 800, 1024: 768, 768: 1024, 390: 844, 375: 812 };
+const HEIGHT = { 1440: 900, 1280: 800, 1024: 768, 834: 1112, 820: 1093, 768: 1024, 390: 844, 375: 812 };
 const name = (w) => (w >= 1100 ? 'desktop' : w >= 600 ? 'tablet' : 'mobile');
 
 mkdirSync(outDir, { recursive: true });
@@ -150,7 +150,7 @@ async function sheet(frames, cols, cellW, cellH, path) {
 
 try {
   for (const w of widths) {
-    const h = HEIGHT[w] || Math.round(w * 0.625);
+    const h = HEIGHT[w] || Math.round(w * (w < 900 ? 4 / 3 : 0.625));
     const label = name(w);
     const page = await browser.newPage({ width: w, height: h, dsf: 1, mobile: w < 600 });
     await page.send('Page.addScriptToEvaluateOnNewDocument', { source: MOTION_RECORDER }).catch(() => {});

@@ -168,3 +168,6 @@ coherent. When the dealt system has two faces:
 - A confident hero followed by section headings almost as large. Keep one size dominant per screen.
 - Body text set in the display face when that face was drawn for large sizes only.
 - Everything bold. If every line is emphasised, none is.
+- Missing spaces around `+` or `-` inside `clamp()` or `calc()` (for example `clamp(2.5rem, 1.2rem+5vw, 5.5rem)`):
+  CSS tokenises `1.2rem+5vw` as a single invalid dimension, silently drops the declaration, and falls back
+  to the inherited size. Always write `1.2rem + 5vw`.
