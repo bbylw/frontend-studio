@@ -610,19 +610,54 @@ export function frame() {
   // cards and rules with whole fields of colour, and those fields are where the type sits. Counting a
   // field only when something is set on it keeps both halves: an empty band still reads as empty ground,
   // a band carrying a heading reads as content, which is what it is.
-  const opaque = (c) => c && c !== 'transparent' && !/rgba\([^)]*,\s*0\)$/.test(c);
-  const pageBg = [document.body, document.documentElement].map((e) => getComputedStyle(e).backgroundColor).find(opaque) || 'rgb(255, 255, 255)';
-  const holdsSomething = (el) => {
-    if ((el.textContent || '').trim().length > 0) return true;
-    if (el.querySelector('img, video, canvas, picture, svg, iframe')) return true;
-    return /^(IMG|VIDEO|CANVAS|PICTURE|IFRAME)$/.test(el.tagName);
+  const opaque = (c) => c && c !== 'transparent' && !/rgba\([^)]*,\s*0(?:\.0+)?\)$/.test(c);
+  const docH = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight, H);
+  const isFullPageWrapper = (el) => {
+    if (!el || el === document.body || el === document.documentElement) return true;
+    if (docH <= H * 1.5) return false;
+    const r = el.getBoundingClientRect();
+    return r.width >= W * 0.85 && r.height >= docH * 0.8;
   };
+  const rootCandidates = [
+    ...['main', '#root', '#app', '#__next'].map((s) => document.querySelector(s)).filter((e) => e && isFullPageWrapper(e)),
+    ...[...document.body.children].filter((e) => isFullPageWrapper(e)),
+    document.body,
+    document.documentElement,
+  ];
+  const pageBg = rootCandidates.map((e) => getComputedStyle(e).backgroundColor).find(opaque) || 'rgb(255, 255, 255)';
   const textRects = [];
+  const textContainers = new Set();
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT); const rg = document.createRange();
   for (let n = walker.nextNode(); n; n = walker.nextNode()) {
-    if (!n.nodeValue.trim() || !n.parentElement || isHidden(n.parentElement)) continue; const pcs = getComputedStyle(n.parentElement); if (pcs.visibility === 'hidden' || +pcs.opacity < 0.2) continue;
-    rg.selectNodeContents(n); for (const r of rg.getClientRects()) if (r.bottom > 0 && r.top < H && r.width > 1) textRects.push(r);
+    const p = n.parentElement;
+    if (!n.nodeValue.trim() || !p || /^(SCRIPT|STYLE|NOSCRIPT|TEMPLATE)$/.test(p.tagName) || isHidden(p)) continue;
+    const pcs = getComputedStyle(p); if (pcs.visibility === 'hidden' || +pcs.opacity < 0.2) continue;
+    rg.selectNodeContents(n);
+    for (const r of rg.getClientRects()) {
+      if (r.bottom > 0 && r.top < H && r.width > 1 && r.height > 1) {
+        textRects.push(r);
+        for (let a = p; a && a !== document.body && a !== document.documentElement; a = a.parentElement) textContainers.add(a);
+      }
+    }
   }
+  const held = new WeakMap();
+  const holdsSomething = (el) => {
+    if (held.has(el)) return held.get(el);
+    if (isFullPageWrapper(el)) { held.set(el, false); return false; }
+    let ok = textContainers.has(el);
+    if (!ok) {
+      const media = /^(IMG|VIDEO|CANVAS|PICTURE|IFRAME|svg)$/.test(el.tagName) ? [el] : [...el.querySelectorAll('img, video, canvas, picture, svg, iframe, [data-ui]')];
+      ok = media.some((m) => {
+        if (isHidden(m)) return false;
+        const mcs = getComputedStyle(m);
+        if (mcs.visibility === 'hidden' || +mcs.opacity < 0.2) return false;
+        const mr = m.getBoundingClientRect();
+        return mr.width > 1 && mr.height > 1 && mr.bottom > 0 && mr.top < H;
+      });
+    }
+    held.set(el, ok);
+    return ok;
+  };
   let filled = 0, samples = 0;
   for (let gx = 0; gx < 24; gx++) for (let gy = 0; gy < 15; gy++) {
     const x = (gx + 0.5) * (W / 24), y = (gy + 0.5) * (H / 15); samples++;

@@ -23,14 +23,16 @@ One regression from 2.2.3, found by re-running the fixture matrix rather than by
   The screens it named were the closing statement and the footer, the two screens of a page where air is
   most appropriate, and both are colour fields with three lines of type on them.
 
-  A field now counts only when something is set on it: it holds text, or an image, video, canvas, svg or
-  interface fragment. That keeps 2.2.3's improvement and drops the false positive, because the two cases
-  it was conflating are now measured differently:
+  A bounded section field now counts only when something visible in the current viewport is set on it:
+  it holds on-screen text, or an on-screen image, video, canvas, svg or interface fragment (while
+  full-page wrappers such as `#root` or `<main>` are treated as page ground rather than a tone step).
+  That keeps 2.2.3's improvement and drops the false positive, because the cases it was conflating are
+  now measured differently:
 
   | a full-bleed pine section | `filled` |
   | --- | --- |
-  | empty | **0** — 2.2.2 read this as 1.0, the bug 2.2.3 was chasing |
-  | carrying one line of type | **1** — 2.2.3 read this as 0.08, the bug this release is chasing |
+  | empty (or content hidden / scrolled off-screen) | **0** — 2.2.2 read this as 1.0, the bug 2.2.3 was chasing |
+  | carrying one line of visible type in the viewport | **1** — 2.2.3 read this as 0.08, the bug this release is chasing |
 
   `page-studio.html` returns to 0 FAIL / 0 WARN with its per-screen `filled` back to the 2.2.2 values, and
   an empty band still measures empty, so this is not a revert.
