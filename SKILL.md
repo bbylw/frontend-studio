@@ -83,7 +83,7 @@ stack, any existing brand (colours, fonts, logo), and above all **what imagery t
 project's own photographs or product shots, a real interface that can be shown, an image generation tool
 you can call, or nothing. Do not plan around pictures you do not have. Nothing of its own is rarely
 nothing at all: the subject's city, street, materials and history are in open archives and museums, free
-to use with a credit (step 6, `scripts/assets.mjs`).
+to use with a credit (step 7, `scripts/assets.mjs`).
 
 If the request is vague, decide and state your reading in one line instead of asking. Ask only when a
 missing fact blocks the work (for example, no product name).
@@ -98,7 +98,7 @@ things of its world (a timetable, a label, a ticket, a sign). This list is where
 step 4. In blind tests, the page that won each brief was built from an item on such a list (the client's
 name and what it means, the street it stands in, the one constraint that makes it what it is), and the
 pages that lost had a good composition with a category idea. The list is also your picture search: each
-place, material and printed thing on it is a query for step 6.
+place, material and printed thing on it is a query for step 7.
 
 For a **product surface**, the inventory is the same discipline applied to the software: what the thing
 actually does, the shape of its real data (how many rows, how many columns, which figures matter), the
@@ -218,8 +218,8 @@ thing is often the product itself working on real-looking data (a filter that re
 really recomputes), which is why §2 of `references/product-surfaces.md` insists on real numbers that
 add up. In blind tests every winning page had one and the jurors named it first. Rules: it uses the
 subject's real content, it works on a phone with a thumb, it has a plain fallback without script, it never
-blocks reading, and it is one thing, not a playground. It is built in step 6 as part of the surface, not
-added as motion in step 9.
+blocks reading, and it is one thing, not a playground. It is built in step 7 as part of the surface, not
+added as motion in step 10.
 
 ### 5. Write the words
 
@@ -245,7 +245,48 @@ Write the whole surface as a copy deck (plain text) before markup, following `re
   client to confirm. Proof is never invented: no customers, quotes, reviews, press, logos or business
   statistics. `references/copy.md` §5 has the full rule.
 
-### 6. Build it, still
+### 6. Get a yes on a sketch, before spending the build
+
+A build is the expensive artifact in this run. Everything before it — the brief, the argument, the
+direction, the words — is minutes. Until this step existed, the first thing anyone *saw* was the finished
+page, so a direction they did not want cost the whole build to find out. A sketch costs a file.
+
+```bash
+node <skill>/scripts/mock.mjs --init    # writes mock.json beside the direction sheet
+# fill the strings in .frontend-studio/mock.json, then:
+node <skill>/scripts/mock.mjs           # writes .frontend-studio/mockup.html
+```
+
+The sketch is **one HTML file with Tailwind from a CDN** — no build step, no dependencies, about a hundred
+lines. Palette, type and the hero's size come from the dealt sheet, not from you: if a colour looks wrong
+in the sketch it is wrong in the palette, which is exactly what the sketch is for. The words come from
+`mock.json` and are not invented by the script.
+
+What it holds: the real palette as real tokens, the dealt type pairing, the hero at the size its own
+blueprint states, and one skeleton per section in the order of your argument. The subject's own headline,
+one sentence, one action, one line per section — short on purpose.
+
+What it deliberately leaves out, because each one costs time and none answers the question being asked:
+photographs, footage, motion, interactive states, the full body copy, and polish beyond the two widths it
+sketches at. **Do not run `inspect.mjs` on it.** It is a sketch; the gate's floors — four real pictures, a
+motion layer — belong to the build, and failing them here says nothing.
+
+**Then stop and ask.** Show the file, say what you changed from the sheet if anything, and ask one question
+with four answers:
+
+1. **Build it** — proceed to step 7 with this direction, palette and type.
+2. **A different direction** — `draw.mjs --redraw direction=…`, then regenerate the sketch.
+3. **A different palette** — `draw.mjs --redraw palette=…`, then regenerate.
+4. **Different type** — `draw.mjs --redraw type=…`, then regenerate.
+
+Round two and three of the sketch are still cheap; round two of a build is not. Do not begin the build on
+an implied yes, on "looks good" from someone who has not opened the file, or on your own judgement that the
+sketch is good. Write the answer in the report.
+
+**When the brief is one you are building for yourself, or the person asking *is* the one deciding,** the
+sketch is still worth rendering: it is the cheapest way to see whether the dealt direction holds up.
+
+### 7. Build it, still
 
 Build the surface with motion switched off in your head; a surface that needs animation to look finished
 is not finished. Order of work:
@@ -304,7 +345,7 @@ is not finished. Order of work:
 Read `references/type.md`, `references/colour.md` and `references/layout.md` when you need the detail
 behind a decision; the laws below are the short form.
 
-### 7. Gate
+### 8. Gate
 
 ```bash
 node <skill>/scripts/lint.mjs <source files or folder> [--surface page|product]
@@ -322,7 +363,7 @@ explicitly documented exception while the rendered page remains clean, a line co
 over a throwaway local server; if the surface must also open straight from the file system, open
 `index.html` that way once before you finish.
 
-### 8. Look
+### 9. Look
 
 Passing the gate means nothing banned was measured. It does not mean the surface is good. Open the
 screenshots the inspector lists (every viewport, with your image viewer or Read tool) and critique them
@@ -332,7 +373,7 @@ at most.
 
 Judge only the pictures. If a problem is visible in a screenshot, it is real, whatever the code says.
 
-### 9. Move
+### 10. Move
 
 Now build the motion layer. In `page` mode it is required, and it is more than one fade: the inspector
 counts the elements that really move while the surface loads and is scrolled, and fails a page under eight
@@ -349,12 +390,12 @@ matter more than entrances) but it is never zero. The layer has four parts:
 
 Transform, opacity and clip-path only; every move has a `prefers-reduced-motion` fallback that keeps the
 content and drops the travel. A move that changes the colour or the layout of whole screens (colour by
-chapter, a pinned story) is part of the composition, so build it in step 6 and let every look round see
+chapter, a pinned story) is part of the composition, so build it in step 7 and let every look round see
 it. `references/motion.md` has the tokens, tested vanilla recipes and the framework recipes (Framer
 Motion, GSAP, CSS scroll-driven). Then run the inspector once more and check every screenshot for content
 that failed to appear.
 
-### 10. Report
+### 11. Report
 
 Tell the user, briefly: the direction dealt (name and seed) and any redraws with reasons; the idea
 sentence and the live thing; the final scores from your last critique round and what still falls short;
@@ -503,15 +544,16 @@ collections could not be searched.
 | `references/colour.md` | Applying the palette: roles, proportions, tone steps, dark surfaces, contrast. |
 | `references/layout.md` | Grid, margins, rhythm, section variety, navigation, footer, the phone composition. |
 | `references/imagery.md` | Choosing, finding, crediting, cropping and treating pictures; what to do with none. |
-| `references/motion.md` | Step 9. Budget, tokens, vanilla recipes, framework recipes (Framer Motion, GSAP, R3F, CSS scroll-driven), reduced motion. |
-| `references/critique.md` | Step 8. How to look, how to score, what to fix first. |
+| `references/motion.md` | Step 10. Budget, tokens, vanilla recipes, framework recipes (Framer Motion, GSAP, R3F, CSS scroll-driven), reduced motion. |
+| `references/critique.md` | Step 9. How to look, how to score, what to fix first. |
 | `references/tells.md` | The dated registry of generated-surface tells and what each is replaced by. |
 | `references/product-surfaces.md` | `product` mode. What changes for dashboards, docs, tools and component libraries, and what does not. |
-| `references/accessibility.md` | Step 6.7 / 9. Focus, semantics, motion safety, contrast, forms, targets. |
+| `references/accessibility.md` | Steps 7.7 and 10. Focus, semantics, motion safety, contrast, forms, targets. |
 | `references/visual-art.md` | Generative and print work: the philosophy-first workflow and the viewer template. |
 | `references/creative-patterns.md` | The pattern library, sorted into what survives the house rules and what is now a dated tell. |
 | `scripts/draw.mjs` | Deals and reprints the direction; `--photos`, `--site <id>` for more references. |
-| `scripts/assets.mjs` | Step 6.4: searches open collections for real pictures of the subject's world; `--get` downloads with the credit, `--credits` prints them. |
+| `scripts/assets.mjs` | Step 7.4: searches open collections for real pictures of the subject's world; `--get` downloads with the credit, `--credits` prints them. |
+| `scripts/mock.mjs` | Step 6. Renders the dealt direction as one throwaway HTML file so it can be approved before the build. |
 | `scripts/lint.mjs` · `scripts/inspect.mjs` | The gate. |
 | `scripts/audit.mjs` | Checks the research library itself — every role legible, every surface visible, every accent distinct from its ink, every palette offering a field, every saturated ground saying where pictures go, every stylesheet link well formed. Run it before changing anything in `library/`. |
 | `assets/base.css` · `assets/base.js` | An optional neutral foundation to build on. |

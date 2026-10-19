@@ -1,5 +1,41 @@
 # Changelog
 
+## 2.3.0 — 2026-10-19
+
+A change to the shape of the run, not to its rules.
+
+### Added
+
+- **Step 6, a sketch before the build, and `scripts/mock.mjs`.** The run used to go from a direction sheet,
+  which is prose, straight to a finished page. That meant the first time anyone *saw* the direction was
+  after the expensive part was done: a direction they did not want cost the whole build to discover, and the
+  rework was a rebuild rather than a redraw. `mock.mjs` renders the dealt direction as one throwaway HTML
+  file — Tailwind from a CDN, no build step, about a hundred lines — and the step ends with one question and
+  four answers: build it, or redraw the direction, the palette, or the type.
+
+  The sketch takes its palette, its type pairing and the hero's display size from the direction sheet, so
+  what is on screen is the dealt direction rather than colours picked by hand; if a token looks wrong in the
+  sketch it is wrong in the palette, which is the point. The words come from `mock.json` and the script never
+  invents them — a sketch with placeholder copy cannot be judged, which is the only thing it is for.
+
+  Deliberately absent: photographs, footage, motion, interactive states, the full body copy, and polish
+  beyond the widths it sketches at. Each costs time and none of them answers the question being asked. The
+  step says plainly not to run `inspect.mjs` on the output: the gate's floors — four real pictures, a motion
+  layer — belong to the build, and failing them on a sketch says nothing.
+
+- **`mock.mjs` reports where the hero size came from.** Blueprints state it three different ways, so the
+  script tries a headline clamp, then a headline `vw` figure, then a labelled display default, and prints
+  which it used. A sketch whose headline is sized from a fallback is judging a composition the sheet never
+  specified, and the run says so instead of implying otherwise. Of the 51 hero blueprints, 30 carry a clamp
+  within reach of the headline.
+
+### Changed
+
+- **The run is eleven steps, not ten.** The sketch is step 6; build, gate, look, move and report shift to
+  7–11. Every cross-reference was updated with it — in `SKILL.md`, its file table, `draw.mjs`, `inspect.mjs`
+  and `rules.mjs`. The six that pointed at steps 6 and 9 were the ones that would have gone stale silently.
+- The README lists the sketch as the third thing the method does, because it is the part that saves the most.
+
 ## 2.2.8 — 2026-10-18
 
 Five gate boundary cases found by re-checking the 2.2.7 four-page round. No library data changed.

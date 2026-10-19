@@ -19,11 +19,15 @@ This skill replaces those defaults with decisions, and with three measurements.
    something of theirs becomes the device the direction calls for* — and do not start building until both
    blanks are filled from an inventory of eight to twelve things that belong to this client and to no
    competitor.
-3. **The build is measured, not reviewed.** `scripts/lint.mjs` scans source for the tells of a generated
+3. **A sketch is approved before anything is built.** `scripts/mock.mjs` renders the dealt direction as one
+   throwaway HTML file — Tailwind from a CDN, real palette, real type, the hero at the size its blueprint
+   states, one skeleton per section — and asks for a yes. A direction you did not want costs a file here
+   instead of the whole build, and rounds of a sketch are still cheap while rounds of a build are not.
+4. **The build is measured, not reviewed.** `scripts/lint.mjs` scans source for the tells of a generated
    surface. `scripts/inspect.mjs` opens the page in a real Chrome at 1440, 768 and 390, measures it
    (headline line counts, type sizes, fonts actually loaded, colours, contrast, overflow, how many
    elements genuinely move), photographs every screen, and exits non-zero while a FAIL remains.
-4. **You look at what you made.** Passing the gate means nothing banned was measured, not that the page is
+5. **You look at what you made.** Passing the gate means nothing banned was measured, not that the page is
    good. `references/critique.md` has the rubric; the screenshots are the evidence.
 
 ## Two surface modes
@@ -85,8 +89,8 @@ Chromium, and installs nothing. `scripts/assets.mjs` also needs network access; 
 
 ```
 frontend-studio/
-├── SKILL.md              the ten-step run, the house rules, the file table
-├── scripts/              draw · lint · inspect · audit · assets
+├── SKILL.md              the eleven-step run, the house rules, the file table
+├── scripts/              draw · mock · lint · inspect · audit · assets
 ├── references/           research, type, colour, layout, imagery, motion, copy,
 │                         critique, tells, accessibility, visual-art,
 │                         product-surfaces, creative-patterns

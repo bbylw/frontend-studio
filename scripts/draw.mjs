@@ -603,7 +603,7 @@ function render(s) {
   if (s.motion) {
     p(`## 8. Motion — ${s.motion.name}`); p(s.motion.description);
     if ((s.input.surface || 'page') === 'product') p('In a working interface the motion floor is lower than on a marketing page, never zero: immediate feedback on every control, real state transitions when panels or rows change, and one signature move where it serves the work (references/product-surfaces.md §6).');
-    else p('This is the signature move, the one loud moment. Around it the page still needs the rest of the motion layer (SKILL.md step 9): an entrance for the parts of every section, feedback on every control, and one moving picture. The inspector fails a page that barely moves. Recipes: references/motion.md.');
+    else p('This is the signature move, the one loud moment. Around it the page still needs the rest of the motion layer (SKILL.md step 10): an entrance for the parts of every section, feedback on every control, and one moving picture. The inspector fails a page that barely moves. Recipes: references/motion.md.');
     p();
   }
   if (d.richness) { p('## 9. Where the richness comes from'); p(d.richness); p(); }
