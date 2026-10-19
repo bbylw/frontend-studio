@@ -261,13 +261,26 @@ function skeleton(entry) {
       return `<section class="bg-bg text-ink ${pad} py-20 md:py-28"><div class="mx-auto max-w-[1200px]">${h}
         <div class="mt-10 grid gap-8 md:grid-cols-3">${items.map(() => `<div><p class="font-display text-[1.15rem]">A capability</p><p class="mt-2 text-ink/75">One sentence on what it does for the visitor.</p></div>`).join('')}</div>${line}</div></section>`;
     }
+    case 'how-it-works': {
+      // A sequence, not three parallel columns: it is the one page role whose point is order. No index
+      // numbers — they are a dated tell — so the order has to come from the reading rhythm alone.
+      const steps = [1, 2, 3];
+      return `<section class="bg-bg text-ink ${pad} py-20 md:py-28"><div class="mx-auto max-w-[1200px]">${h}
+        <div class="mt-10 space-y-9">${steps.map(() => `<div class="grid gap-3 md:grid-cols-12">
+          <p class="md:col-span-4 font-display text-[1.2rem]">A step</p>
+          <p class="md:col-span-7 md:col-start-6 text-ink/75">What happens here, and what it costs the visitor.</p></div>`).join('')}</div>${line}</div></section>`;
+    }
     case 'proof': case 'testimonial':
       return `<section class="bg-[var(--sketch-field)] text-[var(--sketch-field-ink)] ${pad} py-20 md:py-28"><div class="mx-auto max-w-[900px]">
         <p class="font-display text-[clamp(1.5rem,3vw,2.6rem)] leading-[1.15]">A quotation in the subject's own words, set at scale so it carries the section.</p>
         <p class="mt-6 text-sm opacity-80">Name, role</p></div></section>`;
     case 'stats':
+      // No invented figures and no invented labels: a business statistic is proof, and proof is never
+      // fabricated (references/copy.md §5). The slot says "a figure and a caption go here", nothing more.
       return `<section class="bg-bg text-ink ${pad} py-20 md:py-28"><div class="mx-auto grid max-w-[1200px] gap-8 md:grid-cols-3">
-        ${['412', '08', '24'].map((n, i) => `<div><p class="font-display text-[clamp(2.4rem,5vw,4rem)] leading-none">${n}</p><p class="mt-3 text-ink/75">${['tonnes landed', 'vessels', 'hours'][i]}</p></div>`).join('')}
+        ${[0, 1, 2].map(() => `<div>
+          <p class="font-display text-[clamp(2.4rem,5vw,4rem)] leading-none text-ink/25">—</p>
+          <p class="mt-3"><span class="inline-block h-[10px] w-2/3 rounded-[1px] bg-ink/20"></span></p></div>`).join('')}
         </div></section>`;
     case 'pricing':
       return `<section class="bg-bg text-ink ${pad} py-20 md:py-28"><div class="mx-auto max-w-[1200px]">${h}

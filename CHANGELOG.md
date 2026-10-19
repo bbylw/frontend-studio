@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.3.2 — 2026-10-19
+
+### Fixed
+
+- **The page-side sketch had no `how-it-works` skeleton, so a common role fell to a bare heading.** The role
+  appears in the default section list of nine sectors — `saas`, `dev-tool`, `ai-product`, `docs`,
+  `component`, `education`, `health` among them — and fifteen times across `draw.mjs`. On a page it rendered
+  as a heading and one sentence, which is not a sequence. It now renders as one: three rows with the step on
+  the left and what happens on the right, ordered by reading rhythm alone because index numbers are a dated
+  tell. The `product` branch already had it; only the page branch was missing it.
+
+- **The page-side stats skeleton invented business figures.** It rendered `412 tonnes landed`, `08 vessels`,
+  `24 hours` — plausible-looking proof, which `references/copy.md` §5 forbids inventing, on a surface whose
+  whole purpose is to be judged quickly and therefore read at face value. The slot now says what it is: a
+  figure position and a caption bar, with no claim in it.
+
 ## 2.3.1 — 2026-10-19
 
 2.3.0 shipped the sketch working for pages and broken for work surfaces, which is worse than not having it:
