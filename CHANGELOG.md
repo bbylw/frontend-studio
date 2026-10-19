@@ -18,11 +18,15 @@ a sketch that misrepresents the direction makes the checkpoint actively misleadi
   metrics strip, `how-it-works` a flow. A `product` sketch is a console bar, a compact title, the metrics
   strip, and a real table whose column headings come from `cols` in `mock.json` — the columns are the
   structure being judged, so they are supplied — with wireframe bars as cells rather than invented figures,
-  which would be read as content rather than as a sketch.
+  which would be read as content rather than as a sketch. Requested role names (`inspector`, `empty-state`,
+  `panel`, `table`, `timeline`) are read from `requestedSections` / `requestedRole` rather than the aliased
+  `sections` array, and each section entry is passed straight to `skeleton()` so `inspector` and
+  `empty-state` reach their own skeletons and repeated roles do not collide.
 
-- **The hero size fell back to display scale on a work surface.** With no clamp in the blueprint the fallback
-  was `clamp(2.6rem, 8vw, 8rem)`, which is a hero, not the title line above a table. A product sketch now
-  falls back to `clamp(1.3rem, 1.8vw, 1.75rem)` and says so.
+- **The hero size used display scale on a work surface.** With no clamp in the blueprint the fallback
+  was `clamp(2.6rem, 8vw, 8rem)`, and when `draw.mjs` dealt a wildcard direction whose hero blueprint
+  carried a marketing clamp (up to `230px`), `heroSize()` applied that display clamp to the title line
+  above the table. A product sketch now always uses `clamp(1.3rem, 1.8vw, 1.75rem)` and says so.
 
 - **Table cells collapsed to zero width.** The wireframe bars were written `style="width:54"`, which is not a
   valid length, so every cell rendered empty and the table read as six blank rows.
@@ -30,6 +34,10 @@ a sketch that misrepresents the direction makes the checkpoint actively misleadi
 - **An empty `line` was counted as an unfilled placeholder.** A metrics strip or a flow has no sentence under
   it, so `"line": ""` is an intention, not an omission. Only an absent value or one of the starter's own
   sentences now counts.
+
+- **`--out` on `mock.mjs` ignored `direction.json` in the target directory, and `mock.json` cited step 5.**
+  `mock.mjs --out <dir>` now checks `<dir>/direction.json` before falling back to `.frontend-studio/`, and
+  the starter note in `mock.json` points to step 7 for the full build content.
 
 ### Added
 

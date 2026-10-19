@@ -34,12 +34,13 @@ if (args.includes('-h') || args.includes('--help')) {
   --json   print the derived config and write nothing`);
   process.exit(0);
 }
-const flag = (name, def) => { const i = args.indexOf('--' + name); return i === -1 ? def : args[i + 1]; };
-const asJson = args.includes('--json');
-
 // ---- find the sheet, the same way inspect.mjs does
 const here = resolve('.');
+const flag = (name, def) => { const i = args.indexOf('--' + name); return i === -1 || i + 1 >= args.length || args[i + 1].startsWith('--') ? def : args[i + 1]; };
+const asJson = args.includes('--json');
+const outFlag = flag('out', null);
 const candidates = [
+  ...(outFlag ? [join(resolve(String(outFlag)), 'direction.json'), join(resolve(String(outFlag)), '.frontend-studio', 'direction.json')] : []),
   join(here, '.frontend-studio', 'direction.json'),
   join(here, 'direction.json'),
 ];
@@ -52,7 +53,7 @@ if (!sheet) {
   process.exit(2);
 }
 
-const outDir = resolve(String(flag('out', dirname(sheetPath))));
+const outDir = resolve(String(outFlag || dirname(sheetPath)));
 mkdirSync(outDir, { recursive: true });
 
 // ---- what the sheet gives us
@@ -62,7 +63,11 @@ const hero = sheet.hero || null;
 const surface = sheet.surface || sheet.input?.surface || 'page';
 // a working surface is sketched as a work area, not as a marketing page (see productSkeleton)
 const product = surface === 'product';
-const roles = sheet.input?.sections?.length ? sheet.input.sections : (sheet.sections || []).map((s) => s.role);
+const roles = sheet.input?.requestedSections?.length
+  ? sheet.input.requestedSections
+  : (sheet.sections || []).length
+    ? (sheet.sections || []).map((s) => s.requestedRole || s.role)
+    : (sheet.input?.sections || []);
 const brief = sheet.input?.brief || '';
 
 // The hero's display size. Blueprints state it three different ways, so try in order of how much the
@@ -70,6 +75,11 @@ const brief = sheet.input?.brief || '';
 // type system's own head step. Never silently: the run prints which of the three was used, because a
 // sketch whose headline is sized from a fallback is judging a composition the sheet did not specify.
 function heroSize() {
+  // On a working surface the title is not a display: it sits above a table, not across a viewport,
+  // even when the direction was drawn from the shared pool whose hero blueprints carry display clamps.
+  if (product) {
+    return { value: 'clamp(1.3rem, 1.8vw, 1.75rem)', source: 'a product-title default — working surfaces use a compact title above the work area, not a display hero' };
+  }
   const b = hero?.blueprint || '';
   const anchor = b.search(/headline|wordmark|the name|title/i);
   const near = (m) => anchor >= 0 && Math.abs(m.index - anchor) < 220;
@@ -85,10 +95,7 @@ function heroSize() {
   }
   // A section-heading step is the wrong register for a hero, so the last resort is a display size of its
   // own, labelled as such. The sheet still decides the family and the tracking; only the size is a default.
-  // On a working surface the title is not a display: it sits above a table, not across a viewport.
-  return product
-    ? { value: 'clamp(1.3rem, 1.8vw, 1.75rem)', source: 'a product-title default — neither the blueprint nor the type system stated a size' }
-    : { value: 'clamp(2.6rem, 8vw, 8rem)', source: 'a display default — neither the blueprint nor the type system stated a hero size' };
+  return { value: 'clamp(2.6rem, 8vw, 8rem)', source: 'a display default — neither the blueprint nor the type system stated a hero size' };
 }
 const { value: heroPx, source: heroPxSource } = heroSize();
 
@@ -105,15 +112,31 @@ const fontFamilies = typ ? {
 const fontLinks = typ ? [...new Set([typ.display?.css, typ.text?.css].filter(Boolean).flatMap((c) => c.split('\n')))].filter(Boolean) : [];
 
 // ---- the words: mock.json, never invented here
+const SKEL_ALIAS = {
+  feature: 'features', benefits: 'features', services: 'features',
+  product: 'showcase', demo: 'showcase',
+  how: 'how-it-works', process: 'how-it-works', steps: 'how-it-works', flow: 'how-it-works',
+  testimonials: 'testimonial', quotes: 'testimonial',
+  logos: 'proof', press: 'proof',
+  numbers: 'stats', metrics: 'stats', kpis: 'stats',
+  plans: 'pricing', tickets: 'pricing', price: 'pricing',
+  onboarding: 'empty-state',
+  team: 'about',
+  projects: 'work', index: 'work',
+  images: 'gallery',
+  speakers: 'list', agenda: 'list', programme: 'list', program: 'list', timetable: 'list', rooms: 'list', releases: 'list', changelog: 'list',
+  newsletter: 'contact', signup: 'contact',
+};
+const isTableRole = (r) => /^(list|table|records|menu|schedule|lineup|line-up)$/.test(SKEL_ALIAS[r] || r);
 const mockPath = join(outDir, 'mock.json');
 const starter = {
-  note: 'Fill every string. Short on purpose: a headline, one sentence, one action, one line per section. On a product surface also give the table its `cols`. The sketch exists so the direction can be judged in seconds; write the full content later, in step 5.',
+  note: 'Fill every string. Short on purpose: a headline, one sentence, one action, one line per section. On a product surface also give the table its `cols`. The sketch exists so the direction can be judged in seconds; put the full content into the build in step 7.',
   headline: 'HEADLINE — the real one, two lines at most',
   lead: 'One sentence that says what this is.',
   action: 'The one action',
   sections: roles.map((r) => {
     const t = { role: r, heading: `HEADING — ${r}`, line: 'One line of real text for this section.' };
-    if (surface === 'product' && /^(list|table|records|menu|schedule|lineup|line-up)$/.test(r)) t.cols = ['Column', 'Column', 'Column', 'Value'];
+    if (surface === 'product' && isTableRole(r)) t.cols = ['Column', 'Column', 'Column', 'Value'];
     return t;
   }),
 };
@@ -135,7 +158,7 @@ if (asJson) {
 }
 
 // ---- section skeletons. Geometry only: no photographs, no motion, no states.
-const section = (s) => (mock.sections || []).find((x) => x.role === s) || { role: s, heading: `HEADING — ${s}`, line: '' };
+const section = (entry) => (entry && typeof entry === 'object' ? entry : (mock.sections || []).find((x) => x.role === entry) || { role: entry, heading: `HEADING — ${entry}`, line: '' });
 const pad = 'px-6 md:px-12 lg:px-20';
 const block = (cls = '') => `<div class="bg-[var(--sketch-block)] ${cls}"></div>`;
 
@@ -158,8 +181,9 @@ const tableFor = (s) => {
     </table></div>`;
 };
 
-function productSkeleton(role) {
-  const s = section(role);
+function productSkeleton(entry) {
+  const s = section(entry);
+  const role = SKEL_ALIAS[s.role] || s.role;
   const title = (cls = '') => `<p class="text-[0.72rem] uppercase tracking-[0.1em] text-ink/55 ${cls}">${esc(s.heading)}</p>`;
   switch (role) {
     case 'list': case 'table': case 'records': case 'menu': case 'schedule': case 'lineup': case 'line-up':
@@ -208,13 +232,14 @@ function productSkeleton(role) {
   }
 }
 
-function skeleton(role) {
-  if (product) return productSkeleton(role);
-  const s = section(role);
+function skeleton(entry) {
+  if (product) return productSkeleton(entry);
+  const s = section(entry);
+  const role = SKEL_ALIAS[s.role] || s.role;
   const h = `<h2 class="font-display text-[clamp(1.6rem,2.6vw,2.6rem)] leading-[1.08] tracking-[-0.015em]">${esc(s.heading)}</h2>`;
   const line = s.line ? `<p class="mt-5 max-w-[56ch] text-ink/85">${esc(s.line)}</p>` : '';
   switch (role) {
-    case 'intro': case 'about': case 'manifesto':
+    case 'intro': case 'about': case 'manifesto': case 'empty-state':
       return `<section class="bg-bg text-ink ${pad} py-20 md:py-28"><div class="mx-auto grid max-w-[1200px] gap-10 md:grid-cols-12">
         <div class="md:col-span-5">${h}</div><div class="md:col-span-6 md:col-start-7">${line ||
           '<p class="text-ink/85">Two short paragraphs of real text belong here.</p><p class="mt-4 text-ink/85">The second one carries the detail.</p>'}</div></div></section>`;
@@ -224,7 +249,7 @@ function skeleton(role) {
         ${['Item one', 'Item two', 'Item three', 'Item four', 'Item five'].map((n, i) => `<div class="flex items-baseline justify-between gap-6 py-4">
           <span class="text-[1.05rem]">${n}</span><span class="font-text text-ink/70">${['£4.50', '£6.00', '£3.20', '£7.80', '£5.40'][i]}</span></div>`).join('')}
         </div>${line}</div></section>`;
-    case 'showcase': case 'panel': case 'work': case 'case-studies':
+    case 'showcase': case 'panel': case 'inspector': case 'work': case 'case-studies':
       return `<section class="bg-[var(--sketch-surface)] text-ink ${pad} py-20 md:py-28"><div class="mx-auto grid max-w-[1200px] items-center gap-10 md:grid-cols-12">
         <div class="md:col-span-7">${block('aspect-[4/3] w-full')}</div>
         <div class="md:col-span-5">${h}${line}</div></div></section>`;
@@ -354,7 +379,7 @@ ${product ? `<header class="${pad} flex items-center justify-between border-b bo
   </div>
 </section>`}
 
-${(mock.sections || roles.map((r) => ({ role: r }))).map((s) => skeleton(s.role)).join('\n')}
+${(mock.sections?.length ? mock.sections : roles.map((r) => ({ role: r }))).map((s) => skeleton(s)).join('\n')}
 
 <div class="sketch-flag">sketch · structure and colour only</div>
 </body>
