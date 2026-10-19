@@ -1,5 +1,31 @@
 # Changelog
 
+## 2.3.3 — 2026-10-20
+
+Step 6 was prose, and models skipped it: the run went from the words straight to the build, especially
+when the first message already said "build". The checkpoint now has a mechanical form.
+
+### Added
+
+- **`mock.mjs --approve <build|direction|palette|type>` records the answer, and `mock.mjs --check` is
+  step 7's precondition.** `--approve` writes `.frontend-studio/sketch-approval.json` with a SHA-256 over
+  `direction.json`, `mock.json` and `mockup.html`, and `mockup.html` embeds the direction+words hash, so a
+  sketch rendered before the words or direction changed cannot be approved; `--check` exits 1 unless
+  `mockup.html` exists and is current, no starter placeholder remains (including the table `cols` on a
+  product surface), the recorded answer is `build`, and those three files still hash to the recorded
+  value. A redraw answer therefore leaves the build blocked until the sketch is regenerated and answered
+  again.
+
+### Changed
+
+- `mock.mjs` now exits 1 when it renders a sketch with placeholder words, so an unfinished `mock.json`
+  cannot be mistaken for a sketch that is ready to show. `--json` no longer writes a starter `mock.json`.
+- The run's opening lists the sketch among the skill's five core moves, step 6 records the answer and runs
+  the check, step 7 starts with the `--check` precondition, and step 11's report names the sketch and the
+  recorded answer. The sketch-before-build eval now scores the approval record and the passing check.
+- `draw.mjs` ends its saved-sheet output with the sketch as the next step and names the `--check`
+  precondition, so the hand-off from the direction to the build is visible in the tool output itself.
+
 ## 2.3.2 — 2026-10-19
 
 ### Fixed

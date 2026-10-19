@@ -2,7 +2,9 @@
 name: frontend-studio
 description: |
   Build distinctive, production-grade frontend work with exceptional design quality, and prove it is
-  good instead of hoping so. Combines an art-direction engine drawn from a study of 247 curated gallery
+  good instead of hoping so. The dealt direction is rendered as a throwaway HTML sketch and approved
+  before the build starts, and `scripts/mock.mjs --check` refuses the build until that approval is
+  recorded. Combines an art-direction engine drawn from a study of 247 curated gallery
   sites with engineering rigour: a real-browser inspector that measures the result, a static linter for
   the tells of generated pages, and a look-and-fix loop on your own screenshots.
 
@@ -26,7 +28,7 @@ A surface built by a model usually looks like the average of every surface the m
 headline over three lines, a small label above it, a row of icon cards, a soft gradient, a few thin
 rules, a monospace caption. Nothing in it is wrong and nothing in it was decided.
 
-This skill replaces those defaults with decisions, in four ways:
+This skill replaces those defaults with decisions, in five ways:
 
 1. **A script deals the direction; you choose among the dealt options.** Asked to invent a look, a model
    returns the category default every time. `scripts/draw.mjs` deals three of twenty-two researched
@@ -35,9 +37,13 @@ This skill replaces those defaults with decisions, in four ways:
    gallery sites.
 2. **The idea comes from the subject,** not from the category. In the study, what separated the best
    sites from the forgettable ones was a concept taken from the thing itself, not the styling.
-3. **A house style with no ornaments, measured in a real browser** by `scripts/inspect.mjs`, and scanned
+3. **A sketch is approved before the build, and a script enforces it.** `scripts/mock.mjs` renders the
+   dealt direction as one throwaway HTML file — palette, type and section skeletons, no photographs or
+   motion — so the direction is seen in minutes instead of after the build. `mock.mjs --check` refuses
+   the build until the answer `build` is recorded against that exact sketch.
+4. **A house style with no ornaments, measured in a real browser** by `scripts/inspect.mjs`, and scanned
    in source by `scripts/lint.mjs`, so the rules are checked rather than hoped for.
-4. **You look at what you made.** Screenshots at three widths, a juror's rubric, fix, look again.
+5. **You look at what you made.** Screenshots at three widths, a juror's rubric, fix, look again.
 
 One warning learned in testing. Taking the ornaments away is only half the job; a surface that has lost
 its labels, rules and cards and gained nothing in their place reads as thin, and blind jurors rightly
@@ -74,7 +80,8 @@ Pass the mode to the tools: `--surface product` on `lint.mjs` and `inspect.mjs`.
 
 ## The run
 
-Do these in order. Steps 1–6 take a few minutes and decide whether the result is any good.
+Do these in order. Steps 1–6 take a few minutes and decide whether the result is any good. Step 6 is a
+hard checkpoint: step 7 does not start until `node <skill>/scripts/mock.mjs --check` exits 0.
 
 ### 1. Read the brief and the project
 
@@ -257,6 +264,11 @@ node <skill>/scripts/mock.mjs --init    # writes mock.json beside the direction 
 node <skill>/scripts/mock.mjs           # writes .frontend-studio/mockup.html
 ```
 
+`--init` writes the starter and exits non-zero because its strings are placeholders; that is expected.
+Fill them and rerun. The generate command also exits non-zero while any string in `mock.json` is still a
+starter placeholder, including the table `cols` on a product surface. A sketch with placeholder words
+cannot be judged; the non-zero exit is there so it cannot be mistaken for a finished sketch.
+
 The sketch is **one HTML file with Tailwind from a CDN** — no build step, no dependencies, about a hundred
 lines. Palette, type and the hero's size come from the dealt sheet, not from you: if a colour looks wrong
 in the sketch it is wrong in the palette, which is exactly what the sketch is for. The words come from
@@ -275,22 +287,37 @@ photographs, footage, motion, interactive states, the full body copy, and polish
 sketches at. **Do not run `inspect.mjs` on it.** It is a sketch; the gate's floors — four real pictures, a
 motion layer — belong to the build, and failing them here says nothing.
 
-**Then stop and ask.** Show the file, say what you changed from the sheet if anything, and ask one question
-with four answers:
+**Then stop and ask. The build is blocked until the answer is recorded.** Show the file, say what you
+changed from the sheet if anything, and ask one question with four answers:
 
 1. **Build it** — proceed to step 7 with this direction, palette and type.
 2. **A different direction** — `draw.mjs --redraw direction=…`, then regenerate the sketch.
 3. **A different palette** — `draw.mjs --redraw palette=…`, then regenerate.
 4. **Different type** — `draw.mjs --redraw type=…`, then regenerate.
 
-Round two and three of the sketch are still cheap; round two of a build is not. Do not begin the build on
-an implied yes, on "looks good" from someone who has not opened the file, or on your own judgement that the
-sketch is good. Write the answer in the report.
+Record the answer and check the gate before touching the build:
+
+```bash
+node <skill>/scripts/mock.mjs --approve build   # or direction | palette | type
+node <skill>/scripts/mock.mjs --check           # must exit 0 before step 7
+```
+
+`--approve` writes `sketch-approval.json` with a hash of the direction, the words and the sketch itself;
+`--check` exits non-zero if the sketch does not exist or predates the current words/direction, if any word
+is still a placeholder, if no answer was recorded, if the answer was a redraw, or if any of those files
+changed after the answer. Round two and three of the sketch are still cheap; round two of a build is not.
+Do not begin the build on an implied yes, on "looks good" from someone who has not opened the file, or on
+your own judgement that the sketch is good. Write the answer in the report.
 
 **When the brief is one you are building for yourself, or the person asking *is* the one deciding,** the
-sketch is still worth rendering: it is the cheapest way to see whether the dealt direction holds up.
+sketch is still required. Look at it yourself, name what you would change, and record `build` only if you
+would build it unchanged.
 
 ### 7. Build it, still
+
+**Precondition.** `node <skill>/scripts/mock.mjs --check` exits 0. If it does not, you are still in step 6:
+render the sketch, show it, get the answer, and record it with `--approve`. Do not create or edit build
+files first, and do not describe the direction as approved in the report until the check passes.
 
 Build the surface with motion switched off in your head; a surface that needs animation to look finished
 is not finished. Order of work:
@@ -401,8 +428,9 @@ that failed to appear.
 
 ### 11. Report
 
-Tell the user, briefly: the direction dealt (name and seed) and any redraws with reasons; the idea
-sentence and the live thing; the final scores from your last critique round and what still falls short;
+Tell the user, briefly: the direction dealt (name and seed) and any redraws with reasons; the sketch path
+and the answer recorded for it (`build` or which redraw), with the `--check` result; the idea sentence and
+the live thing; the final scores from your last critique round and what still falls short;
 every found picture and clip with its title, creator, licence and source page (`assets.mjs --credits`
 prints the list) and where its credit sits on the surface; which bundled photographs and which drawings
 stand in for photography (so they can be replaced); and any sample content that must be swapped before
@@ -557,7 +585,7 @@ collections could not be searched.
 | `references/creative-patterns.md` | The pattern library, sorted into what survives the house rules and what is now a dated tell. |
 | `scripts/draw.mjs` | Deals and reprints the direction; `--photos`, `--site <id>` for more references. |
 | `scripts/assets.mjs` | Step 7.4: searches open collections for real pictures of the subject's world; `--get` downloads with the credit, `--credits` prints them. |
-| `scripts/mock.mjs` | Step 6. Renders the dealt direction as one throwaway HTML file so it can be approved before the build. |
+| `scripts/mock.mjs` | Step 6. Renders the dealt direction as one throwaway HTML file; `--approve` records the answer against the exact files and `--check` is step 7's precondition. |
 | `scripts/lint.mjs` · `scripts/inspect.mjs` | The gate. |
 | `scripts/audit.mjs` | Checks the research library itself — every role legible, every surface visible, every accent distinct from its ink, every palette offering a field, every saturated ground saying where pictures go, every stylesheet link well formed. Run it before changing anything in `library/`. |
 | `assets/base.css` · `assets/base.js` | An optional neutral foundation to build on. |

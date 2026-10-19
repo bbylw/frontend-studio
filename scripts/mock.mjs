@@ -2,12 +2,16 @@
 // frontend-studio / mock — render a cheap, single-file sketch of the dealt direction.
 //
 //   node mock.mjs [--out DIR] [--init] [--json]
+//   node mock.mjs --approve build|direction|palette|type
+//   node mock.mjs --check
 //
 // Why this exists: a full build is the expensive artifact in the run. Until now the first thing a
 // person saw was the finished page, so a direction they did not want cost the whole build to discover.
 // This renders the same direction as one static HTML file — real palette, real type, the hero at its
 // blueprint size, one skeleton per section in the argument order — in a few seconds. Approve or redraw
-// here, then build once.
+// here, then build once. `--check` is the mechanical form of "do not build on an implied yes": it exits
+// non-zero until the sketch exists, no placeholder words remain, and the answer `build` was recorded
+// against these exact files.
 //
 // It reads `.frontend-studio/direction.json` (written by draw.mjs) and `mock.json` (the words, which
 // this script never invents). Palette, type and hero geometry come from the sheet, so what is on screen
@@ -18,26 +22,37 @@
 // beyond the two breakpoints the sketch uses. Do not run inspect.mjs on the output — it is a sketch,
 // and the gate's floors (four pictures, a motion layer) belong to the build.
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { dirname, join, resolve } from 'node:path';
 
 const args = process.argv.slice(2);
 if (args.includes('-h') || args.includes('--help')) {
   console.log(`usage:
   node mock.mjs [--out DIR] [--init] [--json]
+  node mock.mjs --approve build|direction|palette|type
+  node mock.mjs --check
 
   reads   .frontend-studio/direction.json   (the dealt direction, from draw.mjs)
           mock.json                         (the words; written for you on the first run)
   writes  mockup.html                       (one static file, Tailwind Play CDN, no build step)
 
-  --init   rewrite mock.json from the sheet, discarding edits
-  --out    where to write (default: the sheet's directory)
-  --json   print the derived config and write nothing`);
+  --init     rewrite mock.json from the sheet, discarding edits
+  --out      where to write (default: the sheet's directory)
+  --json     print the derived config and write nothing
+  --approve  record the answer given after the sketch was shown; only "build" unblocks step 7
+  --check    exit 1 until mockup.html exists, no words are placeholders, and an unchanged
+             sketch was approved with "build"; exit 0 when the build may start
+
+  Generating with placeholder words exits 1 as well, so a sketch cannot be mistaken for finished.`);
   process.exit(0);
 }
 // ---- find the sheet, the same way inspect.mjs does
 const here = resolve('.');
 const flag = (name, def) => { const i = args.indexOf('--' + name); return i === -1 || i + 1 >= args.length || args[i + 1].startsWith('--') ? def : args[i + 1]; };
 const asJson = args.includes('--json');
+const checkOnly = args.includes('--check');
+const approveRequested = args.includes('--approve');
+const approveAnswer = flag('approve', null);
 const outFlag = flag('out', null);
 const candidates = [
   ...(outFlag ? [join(resolve(String(outFlag)), 'direction.json'), join(resolve(String(outFlag)), '.frontend-studio', 'direction.json')] : []),
@@ -129,6 +144,8 @@ const SKEL_ALIAS = {
 };
 const isTableRole = (r) => /^(list|table|records|menu|schedule|lineup|line-up)$/.test(SKEL_ALIAS[r] || r);
 const mockPath = join(outDir, 'mock.json');
+const mockupPath = join(outDir, 'mockup.html');
+const approvalPath = join(outDir, 'sketch-approval.json');
 const starter = {
   note: 'Fill every string. Short on purpose: a headline, one sentence, one action, one line per section. On a product surface also give the table its `cols`. The sketch exists so the direction can be judged in seconds; put the full content into the build in step 7.',
   headline: 'HEADLINE — the real one, two lines at most',
@@ -140,20 +157,116 @@ const starter = {
     return t;
   }),
 };
+const existsMock = existsSync(mockPath);
+let mockReadable = false;
 let mock = starter;
-if (existsSync(mockPath) && !args.includes('--init')) {
-  try { mock = JSON.parse(readFileSync(mockPath, 'utf8')); } catch { mock = starter; }
-} else {
+if (existsMock && !args.includes('--init')) {
+  try {
+    const parsed = JSON.parse(readFileSync(mockPath, 'utf8'));
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('not an object');
+    mock = parsed;
+    mockReadable = true;
+  } catch { mock = starter; }
+} else if (!checkOnly && !approveRequested && !asJson) {
   writeFileSync(mockPath, JSON.stringify(starter, null, 1) + '\n');
 }
 
 // An empty string is an intention (a stats strip has no sentence under it); only an absent value or one of
-// the starter's own placeholder sentences counts as unfinished.
+// the starter's own placeholder sentences counts as unfinished. Table column headings are structure, not
+// copy, so on a product surface the columns count as unfilled when they are missing or still "Column".
 const placeholder = (v) => v === undefined || v === null || /^HEADLINE —|^HEADING —/.test(String(v)) || /^One line of real text|^One sentence that says|^The one action/.test(String(v));
-const pending = [mock.headline, mock.lead, mock.action, ...(mock.sections || []).flatMap((s) => [s.heading, s.line])].filter(placeholder).length;
+const pendingWords = [mock.headline, mock.lead, mock.action, ...(mock.sections || []).flatMap((s) => [s.heading, s.line])].filter(placeholder).length;
+const pendingCols = product
+  ? (mock.sections || []).filter((s) => isTableRole(s.role)).reduce((n, s) => {
+    if (!Array.isArray(s.cols) || s.cols.length === 0) return n + 1;
+    return n + s.cols.filter((c) => !String(c ?? '').trim() || /^Column$/i.test(String(c))).length;
+  }, 0)
+  : 0;
+const pending = pendingWords + pendingCols;
+
+const hashFiles = (paths) => {
+  const hash = createHash('sha256');
+  for (const p of paths) {
+    if (!existsSync(p)) return null;
+    hash.update(readFileSync(p));
+    hash.update('\0');
+  }
+  return hash.digest('hex');
+};
+const fingerprint = () => hashFiles([sheetPath, mockPath, mockupPath]);
+const inputHash = () => hashFiles([sheetPath, mockPath]);
+const sketchInputsFromFile = () => {
+  if (!existsSync(mockupPath)) return null;
+  const match = readFileSync(mockupPath, 'utf8').match(/<!-- frontend-studio sketch inputs: ([a-f0-9]{64}) -->/);
+  return match ? match[1] : null;
+};
+
+if (approveRequested) {
+  const choices = ['build', 'direction', 'palette', 'type'];
+  if (!choices.includes(approveAnswer)) {
+    console.error(`Unknown or missing answer "${approveAnswer ?? ''}". Use one of: ${choices.join(', ')}.`);
+    process.exit(2);
+  }
+  if (!existsMock || !mockReadable) {
+    console.error('No readable mock.json to approve. Run mock.mjs, fill the words, run it again, and show the sketch.');
+    process.exit(1);
+  }
+  if (pending) {
+    console.error(`${pending} placeholder string(s) remain in mock.json. Fill them, rerun mock.mjs, show the sketch, and ask again.`);
+    process.exit(1);
+  }
+  if (!existsSync(mockupPath)) {
+    console.error('No mockup.html to approve. Run mock.mjs first.');
+    process.exit(1);
+  }
+  const embedded = sketchInputsFromFile();
+  if (!embedded) {
+    console.error('mockup.html has no input fingerprint. Regenerate it with mock.mjs before approving.');
+    process.exit(1);
+  }
+  if (embedded !== inputHash()) {
+    console.error('The direction or the words changed after the sketch was rendered. Rerun mock.mjs, show the new sketch, and ask again.');
+    process.exit(1);
+  }
+  const sketch = fingerprint();
+  writeFileSync(approvalPath, JSON.stringify({ answer: approveAnswer, sketch, approvedAt: new Date().toISOString() }, null, 1) + '\n');
+  console.log(`Answer recorded: ${approveAnswer}`);
+  console.log(`  approval  ${approvalPath}`);
+  console.log(`  sketch    ${sketch.slice(0, 12)}…`);
+  if (approveAnswer === 'build') {
+    console.log('  Next: run mock.mjs --check; it must exit 0 before step 7.');
+  } else {
+    console.log(`  Next: redraw ${approveAnswer}, regenerate the sketch, show it, and ask again. Do not build.`);
+  }
+  process.exit(0);
+}
+
+if (checkOnly) {
+  const fail = (msg) => { console.error(`SKETCH NOT APPROVED — ${msg}`); process.exit(1); };
+  if (!existsMock) fail('mock.json is missing. Run mock.mjs --init and fill the words.');
+  if (!mockReadable) fail('mock.json is not valid JSON. Fix it, rerun mock.mjs, and show the sketch.');
+  if (pending) fail(`${pending} placeholder string(s) remain in mock.json. Fill them and rerun mock.mjs.`);
+  if (!existsSync(mockupPath)) fail('mockup.html is missing. Run mock.mjs and show the file.');
+  const embedded = sketchInputsFromFile();
+  if (!embedded) fail('mockup.html has no input fingerprint. Regenerate it with mock.mjs.');
+  if (embedded !== inputHash()) fail('the direction or the words changed after the sketch was rendered. Rerun mock.mjs and ask again.');
+  if (!existsSync(approvalPath)) fail('no approval has been recorded. Show mockup.html, ask the four-answer question, then run mock.mjs --approve <answer>.');
+  let approval = null;
+  try { approval = JSON.parse(readFileSync(approvalPath, 'utf8')); } catch { approval = null; }
+  if (!approval || typeof approval !== 'object') fail('sketch-approval.json is unreadable. Ask again and record a fresh answer.');
+  if (approval.answer !== 'build') fail(`the recorded answer is "${approval.answer}", not "build". Redraw that slot, regenerate the sketch, and ask again.`);
+  const current = fingerprint();
+  if (!current) fail('direction.json, mock.json or mockup.html disappeared after approval.');
+  if (approval.sketch !== current) fail('the direction, the words or the sketch changed since approval. Show the new sketch and ask again.');
+  console.log('SKETCH APPROVED — build may start.');
+  console.log(`  sketch    ${mockupPath}`);
+  console.log('  answer    build');
+  console.log(`  approved  ${approval.approvedAt}`);
+  process.exit(0);
+}
 
 if (asJson) {
-  console.log(JSON.stringify({ sheet: sheetPath, surface, heroSize: { value: heroPx, source: heroPxSource }, palette: paletteTokens, fonts: fontFamilies, roles, mock }, null, 1));
+  console.log(JSON.stringify({ sheet: sheetPath, surface, heroSize: { value: heroPx, source: heroPxSource }, palette: paletteTokens, fonts: fontFamilies, roles, mock, pending }, null, 1));
   process.exit(0);
 }
 
@@ -316,6 +429,7 @@ function esc(s) { return String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp
 const mediaLed = /photo|image|media|film|portrait|picture/i.test(hero?.blueprint || '');
 const fieldToken = paletteTokens.find(([k]) => k === 'field1');
 const heroBackground = fieldToken ? 'var(--sketch-field)' : 'var(--sketch-surface)';
+const sketchInputs = inputHash();
 
 const html = `<!DOCTYPE html>
 <html lang="en">
@@ -333,6 +447,7 @@ const html = `<!DOCTYPE html>
   Absent on purpose: photographs, footage, motion, interactive states, full body copy. Each costs time and
   none of them answers the question this file exists to ask. Do not run inspect.mjs on it.
 -->
+<!-- frontend-studio sketch inputs: ${sketchInputs || 'unhashed'} -->
 ${fontLinks.join('\n')}
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
@@ -401,10 +516,10 @@ ${(mock.sections?.length ? mock.sections : roles.map((r) => ({ role: r }))).map(
 </html>
 `;
 
-writeFileSync(join(outDir, 'mockup.html'), html);
+writeFileSync(mockupPath, html);
 
 const rel = (p) => p.replace(process.cwd(), '.').replace(/\\/g, '/');
-console.log(`FRONTEND-STUDIO · MOCK   ${rel(outDir)}/mockup.html`);
+console.log(`FRONTEND-STUDIO · MOCK   ${rel(mockupPath)}`);
 console.log(`  direction   ${sheet.direction?.id || '?'} · ${pal?.name || 'kept palette'} · ${typ?.name || 'kept type'} · ${surface}`);
 console.log(`  hero size   ${heroPx}   — from ${heroPxSource}`);
 console.log(`  sections    ${(mock.sections || []).map((s) => s.role).join(' · ')}`);
@@ -413,6 +528,9 @@ console.log('');
 if (pending) {
   console.log(`  ${pending} string(s) in mock.json are still placeholders. Fill them, run this again, then open mockup.html.`);
   console.log('  A sketch with placeholder words cannot be judged, and the whole point is to judge it before building.');
+  process.exitCode = 1;
 } else {
-  console.log('  Open mockup.html and look at it. This is the checkpoint: get a yes, then build.');
+  console.log('  Open mockup.html and look at it. Show it, ask the four-answer question, then record the answer:');
+  console.log('    node mock.mjs --approve build|direction|palette|type');
+  console.log('  Step 7 may not start until "node mock.mjs --check" exits 0.');
 }

@@ -625,5 +625,7 @@ function render(s) {
   if (s.allow?.length) p(`This direction is allowed: ${s.allow.join(', ')} (the inspector reads this from the saved sheet).`);
   p();
   p(`Saved to ${sheetPath.split('\\').join('/')} · reprint with \`node draw.mjs --show\``);
+  p('Next: sketch it before building — `node mock.mjs --init`, fill `mock.json`, run `mock.mjs`, show it and ask, then record the answer with `mock.mjs --approve`.');
+  p('Step 7 is blocked until `node mock.mjs --check` exits 0.');
   return o.join('\n');
 }
