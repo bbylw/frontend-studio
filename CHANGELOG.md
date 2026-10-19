@@ -5,16 +5,18 @@
 ### Fixed
 
 - **The page-side sketch had no `how-it-works` skeleton, so a common role fell to a bare heading.** The role
-  appears in the default section list of nine sectors — `saas`, `dev-tool`, `ai-product`, `docs`,
-  `component`, `education`, `health` among them — and fifteen times across `draw.mjs`. On a page it rendered
-  as a heading and one sentence, which is not a sequence. It now renders as one: three rows with the step on
-  the left and what happens on the right, ordered by reading rhythm alone because index numbers are a dated
-  tell. The `product` branch already had it; only the page branch was missing it.
+  appears in the default section list of eight sectors — `saas`, `dev-tool`, `ai-product`, `dashboard`,
+  `docs`, `component`, `education`, `health` — and sixteen times across `draw.mjs`. On a page (`how-it-works`
+  or `timeline`) it rendered as a heading and one sentence, which is not a sequence. It now renders as one:
+  three rows with the step on the left and what happens on the right, ordered by reading rhythm alone because
+  index numbers are a dated tell. The `product` branch already had it; only the page branch was missing it.
 
-- **The page-side stats skeleton invented business figures.** It rendered `412 tonnes landed`, `08 vessels`,
-  `24 hours` — plausible-looking proof, which `references/copy.md` §5 forbids inventing, on a surface whose
-  whole purpose is to be judged quickly and therefore read at face value. The slot now says what it is: a
-  figure position and a caption bar, with no claim in it.
+- **The page-side stats skeleton invented business figures, and `stats` / `proof` dropped their supplied words.**
+  `stats` rendered `412 tonnes landed`, `08 vessels`, `24 hours` — plausible-looking proof, which
+  `references/copy.md` §5 forbids inventing, on a surface whose whole purpose is to be judged quickly and
+  therefore read at face value. The slot now says what it is: a figure position and a caption bar, with no
+  claim in it, while keeping the section's `heading` and `line` (and `proof` / `testimonial` now renders the
+  supplied `heading` and `line` from `mock.json` once filled).
 
 ## 2.3.1 — 2026-10-19
 

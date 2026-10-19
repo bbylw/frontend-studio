@@ -207,11 +207,12 @@ function productSkeleton(entry) {
           <div>${['Target', 'Current', 'Customs', 'ETA'].map((k) => `<div class="flex items-baseline justify-between border-b border-ink/10 py-2"><span class="text-[0.82rem] text-ink/60">${k}</span><span class="tabular-nums">—</span></div>`).join('')}</div>
         </div></div></section>`;
     case 'stats':
-      return `<section class="bg-bg ${pad} py-6"><div class="mx-auto grid max-w-[1400px] gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      return `<section class="bg-bg ${pad} py-6"><div class="mx-auto max-w-[1400px]">
+        ${s.heading ? title('mb-3') : ''}<div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         ${['Live', 'Out of range', 'Cleared', 'Late'].map((k) => `<div class="border-l-2 border-ink/15 pl-4">
           <p class="text-[0.72rem] uppercase tracking-[0.1em] text-ink/55">${k}</p>
           <p class="mt-1 font-display text-[1.7rem] leading-none tabular-nums">—</p></div>`).join('')}
-        </div></section>`;
+        </div></div></section>`;
     case 'how-it-works': case 'timeline':
       return `<section class="bg-bg ${pad} py-8"><div class="mx-auto max-w-[1400px]">${title('mb-5')}
         <div class="flex items-center gap-3">${['One', 'Two', 'Three', 'Four'].map((n, i, a) => `<div class="flex flex-1 items-center gap-3">
@@ -261,7 +262,7 @@ function skeleton(entry) {
       return `<section class="bg-bg text-ink ${pad} py-20 md:py-28"><div class="mx-auto max-w-[1200px]">${h}
         <div class="mt-10 grid gap-8 md:grid-cols-3">${items.map(() => `<div><p class="font-display text-[1.15rem]">A capability</p><p class="mt-2 text-ink/75">One sentence on what it does for the visitor.</p></div>`).join('')}</div>${line}</div></section>`;
     }
-    case 'how-it-works': {
+    case 'how-it-works': case 'timeline': {
       // A sequence, not three parallel columns: it is the one page role whose point is order. No index
       // numbers — they are a dated tell — so the order has to come from the reading rhythm alone.
       const steps = [1, 2, 3];
@@ -272,16 +273,17 @@ function skeleton(entry) {
     }
     case 'proof': case 'testimonial':
       return `<section class="bg-[var(--sketch-field)] text-[var(--sketch-field-ink)] ${pad} py-20 md:py-28"><div class="mx-auto max-w-[900px]">
-        <p class="font-display text-[clamp(1.5rem,3vw,2.6rem)] leading-[1.15]">A quotation in the subject's own words, set at scale so it carries the section.</p>
-        <p class="mt-6 text-sm opacity-80">Name, role</p></div></section>`;
+        <p class="font-display text-[clamp(1.5rem,3vw,2.6rem)] leading-[1.15]">${esc(!placeholder(s.heading) && s.heading ? s.heading : "A quotation in the subject's own words, set at scale so it carries the section.")}</p>
+        <p class="mt-6 text-sm opacity-80">${esc(!placeholder(s.line) && s.line ? s.line : 'Name, role')}</p></div></section>`;
     case 'stats':
       // No invented figures and no invented labels: a business statistic is proof, and proof is never
       // fabricated (references/copy.md §5). The slot says "a figure and a caption go here", nothing more.
-      return `<section class="bg-bg text-ink ${pad} py-20 md:py-28"><div class="mx-auto grid max-w-[1200px] gap-8 md:grid-cols-3">
+      return `<section class="bg-bg text-ink ${pad} py-20 md:py-28"><div class="mx-auto max-w-[1200px]">
+        ${s.heading ? h : ''}<div class="${s.heading ? 'mt-10 ' : ''}grid gap-8 md:grid-cols-3">
         ${[0, 1, 2].map(() => `<div>
           <p class="font-display text-[clamp(2.4rem,5vw,4rem)] leading-none text-ink/25">—</p>
           <p class="mt-3"><span class="inline-block h-[10px] w-2/3 rounded-[1px] bg-ink/20"></span></p></div>`).join('')}
-        </div></section>`;
+        </div>${line}</div></section>`;
     case 'pricing':
       return `<section class="bg-bg text-ink ${pad} py-20 md:py-28"><div class="mx-auto max-w-[1200px]">${h}
         <div class="mt-10 grid gap-10 md:grid-cols-2">${['One price', 'Another'].map((n, i) => `<div class="border-t border-ink/20 pt-6">
