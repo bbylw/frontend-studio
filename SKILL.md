@@ -264,7 +264,11 @@ in the sketch it is wrong in the palette, which is exactly what the sketch is fo
 
 What it holds: the real palette as real tokens, the dealt type pairing, the hero at the size its own
 blueprint states, and one skeleton per section in the order of your argument. The subject's own headline,
-one sentence, one action, one line per section — short on purpose.
+one sentence, one action, one line per section — short on purpose. On a `product` surface it draws a work
+area rather than a page: a console bar, a compact title, a metrics strip, a data table with real column
+headings, a panel with a detail column. Because the columns are the structure being judged, give them in
+`cols` on the table's entry in `mock.json`; the cells stay wireframe bars, since inventing freight numbers
+would be read as the design's content.
 
 What it deliberately leaves out, because each one costs time and none answers the question being asked:
 photographs, footage, motion, interactive states, the full body copy, and polish beyond the two widths it

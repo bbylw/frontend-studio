@@ -60,6 +60,8 @@ const pal = sheet.palette || null;
 const typ = sheet.type || null;
 const hero = sheet.hero || null;
 const surface = sheet.surface || sheet.input?.surface || 'page';
+// a working surface is sketched as a work area, not as a marketing page (see productSkeleton)
+const product = surface === 'product';
 const roles = sheet.input?.sections?.length ? sheet.input.sections : (sheet.sections || []).map((s) => s.role);
 const brief = sheet.input?.brief || '';
 
@@ -83,7 +85,10 @@ function heroSize() {
   }
   // A section-heading step is the wrong register for a hero, so the last resort is a display size of its
   // own, labelled as such. The sheet still decides the family and the tracking; only the size is a default.
-  return { value: 'clamp(2.6rem, 8vw, 8rem)', source: 'a display default — neither the blueprint nor the type system stated a hero size' };
+  // On a working surface the title is not a display: it sits above a table, not across a viewport.
+  return product
+    ? { value: 'clamp(1.3rem, 1.8vw, 1.75rem)', source: 'a product-title default — neither the blueprint nor the type system stated a size' }
+    : { value: 'clamp(2.6rem, 8vw, 8rem)', source: 'a display default — neither the blueprint nor the type system stated a hero size' };
 }
 const { value: heroPx, source: heroPxSource } = heroSize();
 
@@ -102,11 +107,15 @@ const fontLinks = typ ? [...new Set([typ.display?.css, typ.text?.css].filter(Boo
 // ---- the words: mock.json, never invented here
 const mockPath = join(outDir, 'mock.json');
 const starter = {
-  note: 'Fill every string. Short on purpose: a headline, one sentence, one action, one line per section. The sketch exists so the direction can be judged in seconds; write the full content later, in step 5.',
+  note: 'Fill every string. Short on purpose: a headline, one sentence, one action, one line per section. On a product surface also give the table its `cols`. The sketch exists so the direction can be judged in seconds; write the full content later, in step 5.',
   headline: 'HEADLINE — the real one, two lines at most',
   lead: 'One sentence that says what this is.',
   action: 'The one action',
-  sections: roles.map((r) => ({ role: r, heading: `HEADING — ${r}`, line: 'One line of real text for this section.' })),
+  sections: roles.map((r) => {
+    const t = { role: r, heading: `HEADING — ${r}`, line: 'One line of real text for this section.' };
+    if (surface === 'product' && /^(list|table|records|menu|schedule|lineup|line-up)$/.test(r)) t.cols = ['Column', 'Column', 'Column', 'Value'];
+    return t;
+  }),
 };
 let mock = starter;
 if (existsSync(mockPath) && !args.includes('--init')) {
@@ -115,7 +124,9 @@ if (existsSync(mockPath) && !args.includes('--init')) {
   writeFileSync(mockPath, JSON.stringify(starter, null, 1) + '\n');
 }
 
-const placeholder = (v) => !v || /^HEADLINE —|^HEADING —/.test(String(v)) || /^One line of real text|^One sentence that says|^The one action/.test(String(v));
+// An empty string is an intention (a stats strip has no sentence under it); only an absent value or one of
+// the starter's own placeholder sentences counts as unfinished.
+const placeholder = (v) => v === undefined || v === null || /^HEADLINE —|^HEADING —/.test(String(v)) || /^One line of real text|^One sentence that says|^The one action/.test(String(v));
 const pending = [mock.headline, mock.lead, mock.action, ...(mock.sections || []).flatMap((s) => [s.heading, s.line])].filter(placeholder).length;
 
 if (asJson) {
@@ -128,7 +139,77 @@ const section = (s) => (mock.sections || []).find((x) => x.role === s) || { role
 const pad = 'px-6 md:px-12 lg:px-20';
 const block = (cls = '') => `<div class="bg-[var(--sketch-block)] ${cls}"></div>`;
 
+// A working surface is not a marketing page and must not be sketched as one. The library keeps the same
+// role names on both surfaces and changes what they mean — `list` is a table, `showcase` the primary
+// panel, `stats` a metrics strip, `how-it-works` a flow — so this renders by surface, not by inventing
+// product-only role names. Column headings come from mock.json (`cols`), because their structure is the
+// thing being judged; the cells are neutral.
+const tableFor = (s) => {
+  const cols = (s.cols && s.cols.length ? s.cols : ['Column', 'Column', 'Column', 'Value']).slice(0, 6);
+  // Cells are tone bars, not invented data: this is a wireframe, and a wireframe that shows plausible
+  // freight numbers would be read as the design's content.
+  const bar = (w) => `<span class="inline-block h-[9px] rounded-[1px] bg-ink/25" style="width:${w}px"></span>`;
+  return `<div class="overflow-x-auto bg-surface">
+    <table class="w-full min-w-[640px] border-collapse text-left text-[0.9rem]">
+      <thead><tr class="border-b border-ink/25">${cols.map((c) => `<th class="py-2.5 pr-6 text-[0.78rem] font-medium uppercase tracking-[0.06em] text-ink/60">${esc(c)}</th>`).join('')}</tr></thead>
+      <tbody>${Array.from({ length: 6 }, (_, i) => `<tr class="border-b border-ink/10 ${i === 0 ? 'bg-ink/[0.07]' : ''}">
+        ${cols.map((_, j) => `<td class="py-3 pr-6 ${j === cols.length - 1 ? 'text-right' : ''}">${bar(j === 0 ? 54 : 84 - (i % 3) * 14)}</td>`).join('')}
+      </tr>`).join('')}</tbody>
+    </table></div>`;
+};
+
+function productSkeleton(role) {
+  const s = section(role);
+  const title = (cls = '') => `<p class="text-[0.72rem] uppercase tracking-[0.1em] text-ink/55 ${cls}">${esc(s.heading)}</p>`;
+  switch (role) {
+    case 'list': case 'table': case 'records': case 'menu': case 'schedule': case 'lineup': case 'line-up':
+      return `<section class="bg-bg ${pad} py-8"><div class="mx-auto max-w-[1400px]">
+        <div class="mb-3 flex items-baseline justify-between gap-6">${title()}
+          <span class="text-[0.8rem] text-ink/55">${esc(s.line || '')}</span></div>
+        ${tableFor(s)}</div></section>`;
+    case 'showcase': case 'panel': case 'work': case 'case-studies':
+      return `<section class="bg-bg ${pad} py-8"><div class="mx-auto grid max-w-[1400px] gap-6 lg:grid-cols-[1fr_340px]">
+        <div class="bg-surface p-5"><div class="mb-4 flex items-center gap-3">${title()}
+          <span class="ml-auto inline-flex min-h-[30px] items-center bg-ink/[0.06] px-3 text-[0.78rem] text-ink/70">Range</span>
+          <span class="inline-flex min-h-[30px] items-center bg-accent px-3 text-[0.78rem] text-accent-ink">${esc(mock.action)}</span></div>
+          ${block('h-[240px] w-full')}</div>
+        <div class="bg-surface p-5"><p class="mb-4 text-[0.72rem] uppercase tracking-[0.1em] text-ink/55">Detail</p>
+          <div class="space-y-3">${['One', 'Two', 'Three'].map((n) => `<div class="flex items-baseline justify-between border-b border-ink/10 pb-2"><span class="text-[0.85rem] text-ink/60">${n}</span><span class="tabular-nums">—</span></div>`).join('')}</div></div>
+        </div></section>`;
+    case 'inspector':
+      return `<section class="bg-bg ${pad} py-8"><div class="mx-auto max-w-[1400px]">
+        <div class="grid gap-6 bg-surface p-5 lg:grid-cols-[1fr_320px]">
+          <div>${title('mb-4')}${block('h-[200px] w-full')}</div>
+          <div>${['Target', 'Current', 'Customs', 'ETA'].map((k) => `<div class="flex items-baseline justify-between border-b border-ink/10 py-2"><span class="text-[0.82rem] text-ink/60">${k}</span><span class="tabular-nums">—</span></div>`).join('')}</div>
+        </div></div></section>`;
+    case 'stats':
+      return `<section class="bg-bg ${pad} py-6"><div class="mx-auto grid max-w-[1400px] gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        ${['Live', 'Out of range', 'Cleared', 'Late'].map((k) => `<div class="border-l-2 border-ink/15 pl-4">
+          <p class="text-[0.72rem] uppercase tracking-[0.1em] text-ink/55">${k}</p>
+          <p class="mt-1 font-display text-[1.7rem] leading-none tabular-nums">—</p></div>`).join('')}
+        </div></section>`;
+    case 'how-it-works': case 'timeline':
+      return `<section class="bg-bg ${pad} py-8"><div class="mx-auto max-w-[1400px]">${title('mb-5')}
+        <div class="flex items-center gap-3">${['One', 'Two', 'Three', 'Four'].map((n, i, a) => `<div class="flex flex-1 items-center gap-3">
+          <span class="h-2.5 w-2.5 rounded-full bg-accent"></span><span class="text-[0.85rem] text-ink/75">${n}</span>
+          ${i < a.length - 1 ? '<span class="h-px flex-1 bg-ink/15"></span>' : ''}</div>`).join('')}</div></div></section>`;
+    case 'empty-state':
+      return `<section class="bg-bg ${pad} py-16"><div class="mx-auto max-w-[560px] text-center">
+        <p class="font-display text-[1.3rem]">${esc(s.heading)}</p>
+        <p class="mt-2 text-[0.9rem] text-ink/65">${esc(s.line)}</p>
+        <span class="mt-6 inline-flex min-h-[38px] items-center bg-accent px-4 text-[0.85rem] text-accent-ink">${esc(mock.action)}</span></div></section>`;
+    case 'footer':
+      return `<footer class="bg-surface ${pad} py-4"><div class="mx-auto flex max-w-[1400px] items-center justify-between text-[0.78rem] text-ink/60">
+        <span>${esc((mock.headline || 'Product').split(/[.,—]/)[0].trim().slice(0, 28))}</span>
+        <span>Synced just now · 18 records</span></div></footer>`;
+    default:
+      return `<section class="bg-bg ${pad} py-8"><div class="mx-auto max-w-[1400px] bg-surface p-5">
+        ${title('mb-3')}${s.line ? `<p class="text-[0.92rem] text-ink/75">${esc(s.line)}</p>` : ''}</div></section>`;
+  }
+}
+
 function skeleton(role) {
+  if (product) return productSkeleton(role);
   const s = section(role);
   const h = `<h2 class="font-display text-[clamp(1.6rem,2.6vw,2.6rem)] leading-[1.08] tracking-[-0.015em]">${esc(s.heading)}</h2>`;
   const line = s.line ? `<p class="mt-5 max-w-[56ch] text-ink/85">${esc(s.line)}</p>` : '';
@@ -238,7 +319,23 @@ ${fontLinks.join('\n')}
 </head>
 <body class="bg-bg font-text text-ink antialiased">
 
-<header class="${pad} flex items-center justify-between bg-bg py-6">
+${product ? `<header class="${pad} flex items-center justify-between border-b border-ink/15 bg-surface py-3">
+  <span class="font-display text-[1rem]">${esc((mock.headline || 'The product').split(/[.,—]/)[0].trim().slice(0, 28))}</span>
+  <div class="flex items-center gap-3 text-[0.85rem] text-ink/70">
+    <span class="inline-flex min-h-[30px] items-center bg-bg px-3">Search</span>
+    <span class="inline-flex min-h-[30px] items-center bg-bg px-3">Signed in</span>
+    <span class="inline-flex min-h-[30px] items-center bg-accent px-3 text-accent-ink">${esc(mock.action)}</span>
+  </div>
+</header>
+
+<!-- On a working surface the first screen is the work area, not a display hero: a compact title line,
+     then straight into the table or panel. -->
+<section class="bg-bg ${pad} pb-2 pt-8">
+  <div class="mx-auto max-w-[1400px]">
+    <h1 class="font-display leading-[1.1] tracking-[-0.02em]" style="font-size:${heroPx}">${esc(mock.headline)}</h1>
+    <p class="mt-2 max-w-[70ch] text-[0.92rem] text-ink/70">${esc(mock.lead)}</p>
+  </div>
+</section>` : `<header class="${pad} flex items-center justify-between bg-bg py-6">
   <span class="font-display text-[1.15rem]">${esc((mock.headline || 'The name').split(/[.,—]/)[0].trim().slice(0, 28))}</span>
   <nav class="flex items-center gap-6 text-[0.95rem] text-ink/80">
     <span>Work</span><span>About</span><span>Contact</span>
@@ -255,7 +352,7 @@ ${fontLinks.join('\n')}
       ${mediaLed ? `<div class="md:col-span-6 md:col-start-7">${block('aspect-[16/10] w-full')}<p class="mt-2 text-sm text-ink/60">photograph — its subject and crop are the build's decision</p></div>` : ''}
     </div>
   </div>
-</section>
+</section>`}
 
 ${(mock.sections || roles.map((r) => ({ role: r }))).map((s) => skeleton(s.role)).join('\n')}
 

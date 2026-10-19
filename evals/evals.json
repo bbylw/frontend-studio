@@ -57,6 +57,13 @@
       "prompt": "Create an interactive, seeded generative art piece exploring tidal contour lines and sediment drift in an estuary. Include seed navigation, parameters for contour density, tidal turbulence, and drift speed, and a PNG export button. Single self-contained HTML file.",
       "expected_output": "A self-contained generative art viewer built on assets/viewer.html with deterministic PRNG seeding (randomSeed/noiseSeed), flat neutral chrome separated by a tone step, a distinct accent on the primary control, live parameter sliders that visibly alter the drawing, reduced-motion support, and zero FAIL findings under lint.mjs.",
       "files": []
+    },
+    {
+      "id": 9,
+      "name": "sketch-before-build",
+      "prompt": "Landing page for Tideline, a two-room guesthouse above a fishing harbour in Brittany. Five rooms are described in the brief but only two exist; the other three are sample names to be confirmed. Sections: what it is, the two rooms, the harbour, rates, and a booking enquiry. No brand exists beyond the name. Static HTML/CSS/JS.",
+      "expected_output": "Two artifacts, in this order, and the order is what is being scored. First a direction sketch at .frontend-studio/mockup.html: one static file using Tailwind from a CDN, carrying the dealt palette as real tokens, the dealt type pairing, and one skeleton per section, with no photographs, no footage, no motion and no full body copy. Then an explicit request for approval naming the four redraw options: build, direction, palette, type. Only after that, the built page. A straight build with no sketch, or a sketch presented after the build had already begun, is a fail no matter how good the final page is.",
+      "files": []
     }
   ]
 }

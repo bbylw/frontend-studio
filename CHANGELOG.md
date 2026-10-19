@@ -1,5 +1,42 @@
 # Changelog
 
+## 2.3.1 — 2026-10-19
+
+2.3.0 shipped the sketch working for pages and broken for work surfaces, which is worse than not having it:
+a sketch that misrepresents the direction makes the checkpoint actively misleading.
+
+### Fixed
+
+- **The sketch drew a marketing page for a `product` surface.** `mock.mjs` had one render path, so a
+  dashboard direction came back as a full-height display hero, a `Work / About / Contact` navigation and a
+  headline at the bottom of the viewport, with the work area pushed below the fold. The section skeletons
+  were page-shaped too: the `list` role rendered `Item one — £4.50` rows, so a freight console got a bakery
+  price list, and `showcase` (the primary panel on a work surface) rendered a large empty block.
+
+  The render path now branches on the surface, because the library keeps the same role names on both and
+  changes what they mean — `list` is a table, `showcase` the primary panel and detail column, `stats` a
+  metrics strip, `how-it-works` a flow. A `product` sketch is a console bar, a compact title, the metrics
+  strip, and a real table whose column headings come from `cols` in `mock.json` — the columns are the
+  structure being judged, so they are supplied — with wireframe bars as cells rather than invented figures,
+  which would be read as content rather than as a sketch.
+
+- **The hero size fell back to display scale on a work surface.** With no clamp in the blueprint the fallback
+  was `clamp(2.6rem, 8vw, 8rem)`, which is a hero, not the title line above a table. A product sketch now
+  falls back to `clamp(1.3rem, 1.8vw, 1.75rem)` and says so.
+
+- **Table cells collapsed to zero width.** The wireframe bars were written `style="width:54"`, which is not a
+  valid length, so every cell rendered empty and the table read as six blank rows.
+
+- **An empty `line` was counted as an unfilled placeholder.** A metrics strip or a flow has no sentence under
+  it, so `"line": ""` is an intention, not an omission. Only an absent value or one of the starter's own
+  sentences now counts.
+
+### Added
+
+- **`evals/` entry 9, `sketch-before-build`.** The new step is a behavioural rule, and no automated gate can
+  check whether an agent stopped and asked. This scores the order of the two artifacts: sketch, approval
+  request, then build — and fails a straight build however good the result is.
+
 ## 2.3.0 — 2026-10-19
 
 A change to the shape of the run, not to its rules.
