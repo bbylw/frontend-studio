@@ -167,17 +167,32 @@ if (existsMock && !args.includes('--init')) {
     mock = parsed;
     mockReadable = true;
   } catch { mock = starter; }
+  if (!mockReadable && !checkOnly && !approveRequested) {
+    console.error('mock.json is not valid JSON. Fix it, or run mock.mjs --init to reset it.');
+    process.exit(1);
+  }
 } else if (!checkOnly && !approveRequested && !asJson) {
   writeFileSync(mockPath, JSON.stringify(starter, null, 1) + '\n');
 }
+
+const canonRole = (r) => SKEL_ALIAS[r] || r;
+const sectionsMatch = Array.isArray(mock.sections)
+  && mock.sections.length === roles.length
+  && roles.every((r, i) => mock.sections[i] && typeof mock.sections[i] === 'object' && canonRole(mock.sections[i].role) === canonRole(r));
+const resolvedSections = sectionsMatch
+  ? mock.sections
+  : roles.map((r, i) => {
+    const m = Array.isArray(mock.sections) ? mock.sections[i] : null;
+    return (m && typeof m === 'object' && canonRole(m.role) === canonRole(r)) ? m : starter.sections[i];
+  });
 
 // An empty string is an intention (a stats strip has no sentence under it); only an absent value or one of
 // the starter's own placeholder sentences counts as unfinished. Table column headings are structure, not
 // copy, so on a product surface the columns count as unfilled when they are missing or still "Column".
 const placeholder = (v) => v === undefined || v === null || /^HEADLINE —|^HEADING —/.test(String(v)) || /^One line of real text|^One sentence that says|^The one action/.test(String(v));
-const pendingWords = [mock.headline, mock.lead, mock.action, ...(mock.sections || []).flatMap((s) => [s.heading, s.line])].filter(placeholder).length;
+const pendingWords = [mock.headline, mock.lead, mock.action, ...resolvedSections.flatMap((s) => [s.heading, s.line])].filter(placeholder).length;
 const pendingCols = product
-  ? (mock.sections || []).filter((s) => isTableRole(s.role)).reduce((n, s) => {
+  ? resolvedSections.filter((s) => isTableRole(s.role)).reduce((n, s) => {
     if (!Array.isArray(s.cols) || s.cols.length === 0) return n + 1;
     return n + s.cols.filter((c) => !String(c ?? '').trim() || /^Column$/i.test(String(c))).length;
   }, 0)
@@ -207,8 +222,16 @@ if (approveRequested) {
     console.error(`Unknown or missing answer "${approveAnswer ?? ''}". Use one of: ${choices.join(', ')}.`);
     process.exit(2);
   }
-  if (!existsMock || !mockReadable) {
-    console.error('No readable mock.json to approve. Run mock.mjs, fill the words, run it again, and show the sketch.');
+  if (!existsMock) {
+    console.error('No mock.json to approve. Run mock.mjs --init, fill the words, run mock.mjs, and show the sketch.');
+    process.exit(1);
+  }
+  if (!mockReadable) {
+    console.error('mock.json is not valid JSON. Fix it, rerun mock.mjs, show the sketch, and ask again.');
+    process.exit(1);
+  }
+  if (!sectionsMatch) {
+    console.error(`mock.json sections (${(mock.sections || []).map((s) => s?.role).filter(Boolean).join(', ') || 'none'}) do not match the direction sheet (${roles.join(', ')}). Run mock.mjs --init or update mock.json, then rerun mock.mjs.`);
     process.exit(1);
   }
   if (pending) {
@@ -245,6 +268,7 @@ if (checkOnly) {
   const fail = (msg) => { console.error(`SKETCH NOT APPROVED — ${msg}`); process.exit(1); };
   if (!existsMock) fail('mock.json is missing. Run mock.mjs --init and fill the words.');
   if (!mockReadable) fail('mock.json is not valid JSON. Fix it, rerun mock.mjs, and show the sketch.');
+  if (!sectionsMatch) fail(`mock.json sections (${(mock.sections || []).map((s) => s?.role).filter(Boolean).join(', ') || 'none'}) do not match the direction sheet (${roles.join(', ')}). Run mock.mjs --init or update mock.json, and rerun mock.mjs.`);
   if (pending) fail(`${pending} placeholder string(s) remain in mock.json. Fill them and rerun mock.mjs.`);
   if (!existsSync(mockupPath)) fail('mockup.html is missing. Run mock.mjs and show the file.');
   const embedded = sketchInputsFromFile();
@@ -266,7 +290,7 @@ if (checkOnly) {
 }
 
 if (asJson) {
-  console.log(JSON.stringify({ sheet: sheetPath, surface, heroSize: { value: heroPx, source: heroPxSource }, palette: paletteTokens, fonts: fontFamilies, roles, mock, pending }, null, 1));
+  console.log(JSON.stringify({ sheet: sheetPath, surface, heroSize: { value: heroPx, source: heroPxSource }, palette: paletteTokens, fonts: fontFamilies, roles, mock, sectionsMatch, pending }, null, 1));
   process.exit(0);
 }
 
@@ -509,7 +533,7 @@ ${product ? `<header class="${pad} flex items-center justify-between border-b bo
   </div>
 </section>`}
 
-${(mock.sections?.length ? mock.sections : roles.map((r) => ({ role: r }))).map((s) => skeleton(s)).join('\n')}
+${resolvedSections.map((s) => skeleton(s)).join('\n')}
 
 <div class="sketch-flag">sketch · structure and colour only</div>
 </body>
@@ -522,10 +546,14 @@ const rel = (p) => p.replace(process.cwd(), '.').replace(/\\/g, '/');
 console.log(`FRONTEND-STUDIO · MOCK   ${rel(mockupPath)}`);
 console.log(`  direction   ${sheet.direction?.id || '?'} · ${pal?.name || 'kept palette'} · ${typ?.name || 'kept type'} · ${surface}`);
 console.log(`  hero size   ${heroPx}   — from ${heroPxSource}`);
-console.log(`  sections    ${(mock.sections || []).map((s) => s.role).join(' · ')}`);
+console.log(`  sections    ${resolvedSections.map((s) => s.role).join(' · ')}`);
 console.log(`  words from  ${rel(mockPath)}`);
 console.log('');
-if (pending) {
+if (!sectionsMatch) {
+  console.log(`  mock.json sections (${(mock.sections || []).map((s) => s?.role).filter(Boolean).join(' · ') || 'none'}) do not match the direction sheet (${roles.join(' · ')}).`);
+  console.log('  Run mock.mjs --init or update mock.json to match the sheet, then run this again.');
+  process.exitCode = 1;
+} else if (pending) {
   console.log(`  ${pending} string(s) in mock.json are still placeholders. Fill them, run this again, then open mockup.html.`);
   console.log('  A sketch with placeholder words cannot be judged, and the whole point is to judge it before building.');
   process.exitCode = 1;
