@@ -1,5 +1,63 @@
 # Changelog
 
+## 2.4.0 — 2026-10-21
+
+The four-picture floor was a counting proxy for "the model skipped the work of finding pictures". It made
+a page that needs no pictures pad itself with stock to pass, and it contradicted `imagery.md` §9, which
+says a surface with no imagery is a legitimate design that scores slightly above the set (7.5 against 7.2
+in the study). The floor is gone. What replaces it is a policy about permission, not quantity: pictures
+beyond the project's own are sourced only when the user asks for them.
+
+### Removed
+
+- **`few-pictures`, `no-real-pictures`, `no-footage`**, from `scripts/lib/rules.mjs` and `RULE_IDS`. No
+  mode counts pictures any more, at any width. `picture-on-colour`, `broken-image` and the motion floor
+  are untouched: they measure what a picture does, not how many there are.
+- **`critique.md`'s cap**: "fewer than four real pictures → design ≤6.5" is gone, and the images pass now
+  asks what each picture is doing rather than how many there are.
+- `colour.md` §"the picture floor does not shrink", and `product-surfaces.md` §7's opening "`page` mode
+  requires four real pictures" — both replaced.
+
+### Added
+
+- **`draw.mjs --requested-images`**, off by default. Without it `imageryMode()` returns `none`: no
+  photographs are dealt, no `assets.mjs` query is printed, the direction's own photo note is withheld, and
+  the sheet carries a paragraph saying nothing is generated, searched or downloaded. The flag is saved as
+  `extend` in `direction.json`, so a reprint keeps the decision.
+- **`assets.mjs --user-requested`**, required for every search and every `--get`. Without it the script
+  exits 2, prints why, and touches no network. `--credits` still reads the disk and needs no request.
+- `draw.mjs`'s `adjustments()` now adds a note when a blueprint places a picture and the build has none:
+  keep the geometry, rebuild the slot as a drawing, a field of colour or a change of scale, never a
+  placeholder.
+- `evals/evals.json` id 10, `text-led-no-images`: a text-only quarterly with four essays, expecting no
+  sourcing at all and 0 FAIL under both gates.
+
+### Changed
+
+- `SKILL.md`: the `page` row of the mode table, step 1's "what imagery truly exists", the `--have` bullet
+  (plus the new `--requested-images` one), step 7.4 rewritten (own images → drawings → type and colour;
+  external only on request), step 10's moving-picture slot, step 11's report, the laws of imagery, and the
+  `assets.mjs` row of the file table.
+- `imagery.md` §2 reordered around the default (own images or none), §3 and §4 marked opt-in.
+- `visual-art.md` and the generative-art special case no longer describe an exemption from a floor that
+  does not exist.
+
+### Verified
+
+- New fixture: a 336-word essay page with **0 images**. `lint.mjs` 0 FAIL / 0 WARN, exit 0; `inspect.mjs`
+  0 FAIL / 0 WARN, exit 0 at 1440 / 768 / 390. Before this change the same page failed on `few-pictures`.
+- `node assets.mjs "ghent postcard"` exits 2 with the refusal message and searches nothing.
+- `draw.mjs` without the flag writes `imagery:"none"`, `photos:null` and the no-pictures paragraph; with
+  `--requested-images` it deals a photograph set and prints the `--user-requested` commands.
+- `audit.mjs` on `library/`: 0 FAIL / 0 WARN.
+- `README.md` updated to match: the floors row, a new "Pictures are a permission, not a quota" section, the
+  verification row (now a text-led page with no pictures, 0 FAIL / 0 WARN in both modes) and the install
+  tree. The fixture ships as `fs-verify/no-pictures/index.html` and the commands in the README were run
+  from the repo root to produce that row.
+- **Not re-run:** the four scratch fixtures behind the other rows of the verification table. Their
+  `fs-verify/` directory is not part of this tree, and the README now says so instead of claiming they are
+  reproducible.
+
 ## 2.3.3 — 2026-10-20
 
 Step 6 was prose, and models skipped it: the run went from the words straight to the build, especially

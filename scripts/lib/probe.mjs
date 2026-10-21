@@ -503,11 +503,11 @@ export function probe() {
   const blendText = texts.filter((t) => { for (let p = t.el, i = 0; p && p !== document.body && i < 6; p = p.parentElement, i++) if (/difference|exclusion/.test(getComputedStyle(p).mixBlendMode)) return true; return false; }).length;
   const bodyText = document.body.innerText || '';
   const words = bodyText.split(/\s+/).filter(Boolean).length;
-  // Auto-detection has to tell an art piece from a page that drew a chart on a canvas instead of finding
-  // photographs, so the picture floor cannot be dodged by reaching for a <canvas>. `sections === 0` is the
-  // discriminator, and it is the one inspect.mjs already uses when it credits an animated canvas with full
-  // motion: a piece that is its own subject has no section structure to navigate, a landing page does. A
-  // word-count ceiling cannot do this job — a short landing page clears any prose limit.
+  // Auto-detection has to tell an art piece from a page that drew a chart on a canvas: both carry no
+  // pictures and no interface fragments. `sections === 0` is the discriminator, and it is the one
+  // inspect.mjs already uses when it credits an animated canvas with full motion: a piece that is its own
+  // subject has no section structure to navigate, a landing page does. A word-count ceiling cannot do this
+  // job — a short landing page clears any prose limit.
   const canvasArt = realPictures === 0 && uiPictures === 0 && document.querySelectorAll('section').length === 0
     && heroMedia.some((m) => m.type === 'canvas' && m.ratio >= 0.25) && words <= 450;
   const emoji = (bodyText.match(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu) || []);

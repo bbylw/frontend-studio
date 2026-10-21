@@ -19,14 +19,14 @@ decided anything.
 4. Copy for product surfaces
 5. The house rules, rule by rule, with the reasoning
 6. Design systems and component catalogues
-7. The picture floor, replaced
+7. Imagery on a product surface
 8. Density, tables, states and error copy
 9. How product surfaces fail
 
 ## 1. What changes, and what does not
 
-**Changes:** the ornament budget (lines, monospace, numbering, tiles, shadows on floating things), the
-picture floor, the motion floor, and the emptiness rule.
+**Changes:** the ornament budget (lines, monospace, numbering, tiles, shadows on floating things), how
+imagery is treated, the motion floor, and the emptiness rule.
 
 **Does not change — the procedural core, in full:**
 
@@ -157,10 +157,11 @@ as a section:
 - **One live thing:** a specimen the reader can actually operate (type in the field, toggle the switch,
   sort the table) is worth more than a screenshot of it.
 
-## 7. The picture floor, replaced
+## 7. Imagery on a product surface
 
-`page` mode requires four real pictures. A dashboard has none and should have none. In `product` mode the
-rule becomes:
+Neither mode counts pictures, and a dashboard is the clearest case of a surface that should carry none: its
+"pictures" are its own interface. Photographs are added only when the user asks for them (SKILL.md step
+7.4), on any surface.
 
 - **Show the real interface, built in HTML, at true size, with believable content** — real labels, numbers
   that add up, one item hovered or selected, correct alignment. This is `imagery.md` §7, and it is the
@@ -168,10 +169,10 @@ rule becomes:
   inspector judges the page around it and not its own control borders.
 - **A fake dashboard of grey bars is worse than no image.** Grey rectangles standing in for text are the
   single clearest generated-surface tell.
-- **Photographs still belong** wherever there is a real world around the software: the place, the people,
-  the material, the trade the tool serves. Use the open collections (`assets.mjs`) exactly as in `page`
-  mode, and credit them. A tool for a fishing fleet may legitimately carry one archival photograph of the
-  harbour.
+- **Photographs only on request**, and then only where there is a real world around the software: the
+  place, the people, the material, the trade the tool serves. `assets.mjs "<query>" --user-requested`, and
+  credit them. A tool for a fishing fleet may legitimately carry one archival photograph of the harbour —
+  if the user asked for pictures at all.
 - **Drawings beat screenshots** for abstract concepts: the shape of the data, the flow of the process, the
   parts of the system, drawn as one consistent flat graphic language in the palette's colours
   (`imagery.md` §8). Do not download a stock "isometric technology illustration".

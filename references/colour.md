@@ -129,10 +129,11 @@ What to do with a palette like that:
 1. **Every picture goes into a neutral field.** The coloured ground carries type and nothing else.
 2. **The palette has to offer that field.** Nine palettes in the library deal a saturated mid-tone ground,
    and each declares a `pictures` line naming the field to use; the sheet prints it in the Colour section
-   and again in the Floor paragraph. `scripts/audit.mjs` fails a saturated ground with no `pictures` line,
-   or one that names a field the palette does not have.
-3. **The picture floor does not shrink.** A page on a cobalt ground still owes four or more real pictures.
-   The field is where they go, not a reason to skip them.
+   and again where it talks about imagery. `scripts/audit.mjs` fails a saturated ground with no `pictures`
+   line, or one that names a field the palette does not have.
+3. **A page with no pictures does not need the field.** The field exists so pictures have somewhere to
+   go; if the project has no imagery and the user has not asked for any (SKILL.md step 7.4), the coloured
+   ground can carry the whole surface.
 4. **Or change the ground.** If the direction's idea does not need the loud field, take a neutral ground
    from the same palette and keep the accent. A loud ground is a commitment, not a default.
 

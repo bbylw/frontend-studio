@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 // frontend-studio / assets: find real, openly licensed pictures of the subject's world, and keep their credits.
 //
+// This script is opt-in. Searching, generating and downloading pictures is the user's decision, so every
+// search and every --get needs --user-requested on the command line; without it the script refuses and
+// says why. A surface with no pictures is legitimate (references/imagery.md §9).
+//
 // A page without photographs of its own does not have to draw everything. Archives, museums and open
 // collections hold the subject's city and street, its maps, its materials, its trade's history and the
 // museum objects of its kind, free to use with a credit. This searches them without keys and prints what
@@ -8,7 +12,7 @@
 // creator, its licence and a one-line credit. Then it downloads the chosen ones into the project and
 // records their credits, so the page works offline and credits every picture.
 //
-//   node assets.mjs "<query>"                     search every source, licences safe for commercial use
+//   node assets.mjs "<query>" --user-requested      search every source, licences safe for commercial use
 //        [--source all|openverse|commons|aic|met|museums]    one or several, comma-separated
 //        [--license safe|pd|all|cc0,pd,by,by-sa,...]        safe = CC0, public domain, CC BY, CC BY-SA
 //        [--orientation landscape|portrait|square]  [--min-width 1000]  [--width 1920]  [--limit 5]
@@ -53,7 +57,10 @@ const AIC_HEADERS = { 'AIC-User-Agent': UA };
 
 const USAGE = `Find real, openly licensed pictures of the subject's world, download them, keep their credits.
 
-  ${CMD} "<query>" [options]
+  Pictures from outside the project are added only when the user asked for them: every search and every
+  --get requires --user-requested. Without it the script refuses and searches nothing.
+
+  ${CMD} "<query>" --user-requested [options]
       --source all|openverse|commons|aic|met|museums   comma-separated; default all
       --license safe|pd|all|cc0,pd,by,by-sa,...        default safe: CC0, public domain, CC BY, CC BY-SA
       --orientation landscape|portrait|square
@@ -62,13 +69,13 @@ const USAGE = `Find real, openly licensed pictures of the subject's world, downl
       --limit <n>            results per source, default 5 (at most 20)
       --no-check             do not check that every image loads (faster, less reliable)
       --json                 machine-readable results
-  ${CMD} "<query>" --video [options]   real footage: Wikimedia Commons, Internet Archive, NASA
+  ${CMD} "<query>" --video --user-requested [options]   real footage: Wikimedia Commons, Internet Archive, NASA
       --source all|commons|archive|nasa
       --res <p>              largest rendition to pick, by its short side, default 720
       --max-mb <n>           clips over this are flagged and --get refuses them, default 25
       --min-width <px>       default 640 for video
-  ${CMD} --get <ref>[,<ref>...] [--to assets] [--name <file name>] [--width 1920] [--res 720] [--max-mb 25]
-  ${CMD} --credits [--to assets]
+  ${CMD} --get <ref>[,<ref>...] --user-requested [--to assets] [--name <file name>] [--width 1920] [--res 720] [--max-mb 25]
+  ${CMD} --credits [--to assets]        prints what is already on disk; no request needed
 
 Queries work best in the subject's own words and a medium: "ghent postcard", "ghent old map", "azulejo tiles",
 "botanical engraving fig", "rotterdam harbour 1920", "basalt texture". The museum sources match one or two
@@ -77,7 +84,7 @@ construction", "river", "city street night".`;
 
 // ---------- arguments ----------
 const VALUED = new Set(['source', 'sources', 'license', 'licence', 'orientation', 'min-width', 'width', 'limit', 'get', 'to', 'name', 'type', 'res', 'max-mb']);
-const FLAGS = new Set(['no-check', 'json', 'credits', 'help', 'video']);
+const FLAGS = new Set(['no-check', 'json', 'credits', 'help', 'video', 'user-requested']);
 const args = {}; const words = [];
 const argv = process.argv.slice(2);
 for (let i = 0; i < argv.length; i++) {
@@ -862,6 +869,23 @@ function printCredits(opts) {
 
 // ---------- run ----------
 if (args.help) { console.log(USAGE); process.exit(0); }
+// Sourcing a picture is the user's decision, not the builder's. Searching, generating and downloading are
+// refused unless the request came from the person the page is for; --credits reads only what is already
+// on disk and stays open.
+if (!args['user-requested'] && (args.get || words.length)) {
+  console.error(`Refusing to look for pictures: nobody asked for them.
+
+A surface is built from the project's own imagery, drawings in code, or type and colour alone. Pictures
+from outside are added only when the user has explicitly asked for them (SKILL.md step 7.4).
+
+If the user did ask, say so on the command line and record their words in your report:
+
+  node assets.mjs "<query>" --user-requested
+  node assets.mjs --get commons:123 --user-requested
+
+Nothing was searched and nothing was downloaded.`);
+  process.exit(2);
+}
 if (args.credits) process.exit(printCredits(o));
 if (args.get) process.exit(await getAll(String(args.get).split(',').map((s) => s.trim()).filter(Boolean), o));
 const query = words.join(' ').trim();

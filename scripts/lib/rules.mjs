@@ -131,17 +131,12 @@ export function judge(m, { width = m.viewport.w, allow = [], surface = 'page' } 
   else if (m.type.body && m.type.body.size < bodyWarn && !mobile) add('WARN', 'body-size', `Body text is ${m.type.body.size}px.`, 'Body copy 16–20px.');
   if (m.type.body?.contrast && m.type.body.contrast < 7) add('WARN', 'grey-body', `The running text is a soft grey on its ground (${m.type.body.contrast}:1).`, 'Set body copy in the full ink (7:1 or more). Keep the muted ink for secondary notes; pages read thin and unfinished when everything is grey.');
   if (m.buttons.inHero === 0 && !(art && mobile)) add('WARN', 'first-action', `No visible button in the first ${mobile ? 'phone ' : ''}screen.`, mobile ? 'On a phone the first screen still holds the headline, the supporting sentence and the action; move navigation into one row or a menu so it does not push them down.' : 'Give the one primary action a real button in the first screen (a filled or solid-bordered control, 44px or taller), not only a link in the navigation.');
-  // Models skip pictures when nothing makes them: the page must carry real ones (see SKILL.md, imagery).
-  // A product surface has no photographs and should have none: its "pictures" are its own interface
-  // fragments, which the imagery rules cover by hand (references/product-surfaces.md §7).
-  // A self-contained generative/canvas piece (--surface art or a dominant hero <canvas> with minimal text)
-  // is its own visual subject and is likewise exempt from external photograph and video counts.
-  if (!product && !art && width >= 1100 && m.page.realPictures != null) {
-    const pics = m.page.realPictures + m.page.uiPictures;
-    if (pics < 4) add('FAIL', 'few-pictures', `Only ${pics} picture(s) on the page (${m.page.realPictures} photographs, footage or raster images, ${m.page.uiPictures} interface fragments). Drawings in SVG do not count.`, 'Find real pictures of the subject\'s world with scripts/assets.mjs (photographs, archival images, maps, engravings, footage), download them to assets/ and give them room: a hero picture, one per section that has a subject, a full-width band. At least four, usually six to twelve.');
-    else if (m.page.realPictures < 2) add('WARN', 'no-real-pictures', `Only ${m.page.realPictures} real photograph(s) or clip(s); the rest are interface fragments.`, 'Add two or more real pictures of the customer\'s world from scripts/assets.mjs, not stock of people at laptops.');
-    if (!m.page.videoCount && !m.page.movingPictures) add('WARN', 'no-footage', 'No video or moving picture anywhere on the page.', 'Look for one honest clip with scripts/assets.mjs --video (the place, the material, the process) and use it as a muted loop with a poster frame, or give one photograph a slow scale/drift or scroll-linked move (SKILL.md step 10). Defend its absence only if neither fits the subject.');
-  }
+  // There is no picture quota. Whether a surface carries pictures at all is decided by what the project
+  // owns and by whether the user asked for more (SKILL.md step 7.4): a page with no pictures is a
+  // legitimate design (references/imagery.md §9), judged on type, colour and content instead. Counting
+  // pictures only ever made a page pad itself with stock. What is still measured about imagery: a picture
+  // laid on a saturated ground (`picture-on-colour`, above), a broken image, and a moving picture, which
+  // counts toward the motion floor whatever the surface mode.
   // A table wider than its column is normal in a working interface; on a page a row cut at the edge
   // reads as clipped, which is why this is a page-mode rule.
   if (!product && m.page.sideScrollers) add('WARN', 'side-scroll', `${m.page.sideScrollers} row(s) scroll sideways with content past their edge.`, 'Jurors and most visitors read a row cut at the edge as clipped, not as scrollable. Wrap it onto more lines, or end it inside the grid.');
@@ -166,4 +161,4 @@ export function judge(m, { width = m.viewport.w, allow = [], surface = 'page' } 
   return out;
 }
 
-export const RULE_IDS = ['headline-lines', 'statement-length', 'focal-point', 'hero-words', 'mixed-font-headline', 'eyebrow', 'mono', 'numbering', 'micro-label', 'emoji', 'picture-on-colour', 'gradient', 'gradient-text', 'shadow', 'text-shadow', 'button-fx', 'hairline', 'outlined-box', 'dashed', 'glass', 'icon-cards', 'card-rows', 'pill-nav', 'palette-claude', 'palette-terracotta', 'palette-cream', 'palette-purple', 'default-link', 'contrast', 'font-count', 'font-fallback', 'size-count', 'body-size', 'measure', 'small-text', 'all-centred', 'ui-wrapper', 'overflow', 'broken-image', 'no-hero', 'first-action', 'grey-body', 'blend-text', 'covered-text', 'clipped-text', 'pinned-over-picture', 'empty-screens', 'long-pin', 'side-scroll', 'few-pictures', 'no-real-pictures', 'no-footage', 'still-page'];
+export const RULE_IDS = ['headline-lines', 'statement-length', 'focal-point', 'hero-words', 'mixed-font-headline', 'eyebrow', 'mono', 'numbering', 'micro-label', 'emoji', 'picture-on-colour', 'gradient', 'gradient-text', 'shadow', 'text-shadow', 'button-fx', 'hairline', 'outlined-box', 'dashed', 'glass', 'icon-cards', 'card-rows', 'pill-nav', 'palette-claude', 'palette-terracotta', 'palette-cream', 'palette-purple', 'default-link', 'contrast', 'font-count', 'font-fallback', 'size-count', 'body-size', 'measure', 'small-text', 'all-centred', 'ui-wrapper', 'overflow', 'broken-image', 'no-hero', 'first-action', 'grey-body', 'blend-text', 'covered-text', 'clipped-text', 'pinned-over-picture', 'empty-screens', 'long-pin', 'side-scroll', 'still-page'];

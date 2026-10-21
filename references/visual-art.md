@@ -103,16 +103,16 @@ ground). Both are house rules, and `lint.mjs` will fail a file that breaks them.
 
 When you run `inspect.mjs` on a generative piece (either directly or with `--surface art`), the inspector
 recognises a self-contained `<canvas>` viewer automatically: it counts `requestAnimationFrame` canvas
-drawing in the motion check and exempts the piece from the external photograph and video floor
-(`few-pictures`, `no-real-pictures`, `no-footage`), because the canvas itself is the visual work.
+drawing in the motion check. There is no picture requirement to be exempted from — nothing counts
+pictures.
 
 Automatic recognition has to earn it. All of these must hold: no external photographs or interface
 fragments, a `<canvas>` covering at least a quarter of the first screen, at most 450 words on the page,
 **and no `<section>` elements at all**. That last one is what tells a piece that is its own subject from a
-landing page that drew a chart on a canvas instead of finding pictures — a real viewer has nothing to
-navigate, so it has no section structure, while a page always does. If the inspector judges your page in
-`page` mode and fails `few-pictures`, that is the correct answer: reach for `scripts/assets.mjs` or
-`--surface art` deliberately rather than expecting a canvas to substitute for photographs.
+landing page that drew a chart on a canvas. A real viewer has nothing to navigate, so it has no section
+structure, while a page always does. The distinction no longer decides a picture obligation — nothing
+requires pictures — but it still decides how the motion check credits the canvas, so a viewer that carries
+its own motion is scored as the work it is.
 
 ## 5. Refinement
 

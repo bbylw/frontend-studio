@@ -39,7 +39,7 @@ interface, so the skill carries both rather than compromising on one.
 | --- | --- | --- |
 | Covers | landing, marketing, portfolio, one-pager, event, restaurant | dashboards, admin panels, tool UIs, data tables, settings, design systems |
 | House rules | in full | a documented subset |
-| Floors | four real pictures, eight moving elements | pictures replaced by real interface fragments; four moving elements |
+| Floors | eight moving elements; no picture quota | pictures replaced by real interface fragments; four moving elements |
 
 `product` mode relaxes eleven devices from FAIL to WARN — monospace in the literal-data role, a rank
 number, a table's rules, a shadow on something that really floats, a panel title above a large figure —
@@ -51,6 +51,24 @@ warning stays a warning.
 ```bash
 node scripts/lint.mjs src/ --surface product
 node scripts/inspect.mjs dist/index.html --surface product
+```
+
+## Pictures are a permission, not a quota
+
+Nothing counts pictures. A surface with no images is a legitimate design — in the study the seven sites
+with no imagery scored 7.5 against 7.2 for the set — and a page is never padded with stock to reach a
+number. What fills the place a picture would take is type at scale, a whole field of colour, or the
+subject drawn in code.
+
+Pictures beyond the project's own are sourced only when the user asks for them. `draw.mjs` deals no
+photographs and prints no search command without `--requested-images`, and `assets.mjs` refuses every
+search and every `--get` without `--user-requested`: no generated images, no open collections, no stock on
+the model's own initiative. The inspector still measures what an image does wrong — a photograph laid on a
+saturated ground, a broken file — but never how many there are.
+
+```bash
+node scripts/draw.mjs --sector restaurant --brief "…" --requested-images   # only when the user asked
+node scripts/assets.mjs "alfama postcard" --user-requested                # wrong without the flag: exit 2
 ```
 
 ## A gate for the library too
@@ -78,14 +96,16 @@ node scripts/audit.mjs
 | stock marketing phrases | the specific thing the product does |
 
 Removing ornament leaves space, and the space has to be filled with substance: type set larger, whole
-fields of colour, real pictures of this subject's world, and every section carrying its full content. A
-surface that has lost its cards and gained nothing in their place reads as thin, and blind jurors prefer a
-richer surface with tells over an empty one without them.
+fields of colour, the subject drawn large where a picture would go, real pictures where the project owns
+them, and every section carrying its full content. A surface that has lost its cards and gained nothing in
+their place reads as thin, and blind jurors prefer a richer surface with tells over an empty one without
+them.
 
 ## Install
 
 Copy this folder into your agent's skills directory. It needs Node 22+ and an installed Chrome, Edge or
-Chromium, and installs nothing. `scripts/assets.mjs` also needs network access; it uses no API keys.
+Chromium, and installs nothing. `scripts/assets.mjs` also needs network access when it is used; it uses no
+API keys, and it runs only with `--user-requested`.
 
 ```
 frontend-studio/
@@ -98,26 +118,33 @@ frontend-studio/
 │                         51 hero blueprints · 172 section blueprints ·
 │                         11 motion patterns · 181 studied-site records
 ├── assets/               base.css · base.js · the generative-art viewer template
+├── fs-verify/            the no-pictures fixture the verification table cites
 └── evals/                briefs for testing the skill against a no-skill baseline
 ```
 
 ## Verification
 
-Four surfaces and one deliberate mistake, run through both gates in both modes. Reproducible from a
-`fs-verify/` directory; the commands are in the `README.md` there.
+Four surfaces and one deliberate mistake, run through both gates in both modes. The no-pictures fixture
+ships in `fs-verify/no-pictures/`; the rest are scratch pages and are not part of this tree.
+
+```bash
+node scripts/lint.mjs fs-verify/no-pictures
+node scripts/inspect.mjs fs-verify/no-pictures/index.html
+```
 
 | Fixture | lint `page` | lint `product` | inspect `page` | inspect `product` |
 | --- | --- | --- | --- | --- |
 | every banned tell at once | 8 FAIL | **8 FAIL** | 6 FAIL | **3 FAIL** |
 | a plausible product skeleton | 4 FAIL | **0 FAIL** | 5 FAIL | 1 FAIL |
 | a real product surface | 0 FAIL | 0 FAIL | 3 FAIL | **0 FAIL** |
-| a page with four real pictures | 0 FAIL | 0 FAIL | **0 FAIL / 0 WARN** | — |
+| a text-led page with no pictures | 0 FAIL | 0 FAIL | **0 FAIL / 0 WARN** | **0 FAIL / 0 WARN** |
 | a picture on a saturated ground | 0 FAIL | 0 FAIL | **3 FAIL** | **1 FAIL** |
 | `audit.mjs` on the library | — | — | **0 FAIL / 0 WARN** | — |
 
 Read the second and third rows together: the bans that matter never relax, while a legitimate working
 interface goes from three failures to none on the surface mode alone. That single comparison is the whole
-design.
+design. Read the fourth row as the 2.4.0 regression: a page with no images at all used to fail on
+`few-pictures`, and now both gates pass it in both modes, because nothing counts pictures.
 
 ## Provenance
 

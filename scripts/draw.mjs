@@ -11,6 +11,9 @@
 //                                              the sector (dashboard/docs/component) when omitted.
 //                 [--tone quiet|bold|warm|technical|playful|luxury|editorial]
 //                 [--have photography,product-photo,product-ui,illustration,video]   assets you really have
+//                 [--requested-images]         the user explicitly asked for pictures to be added. Off by
+//                                              default: the draw then deals no photographs and tells the
+//                                              builder not to search, generate or download any picture.
 //                 [--keep palette,type]        the brand already fixes these; draw the rest
 //                 [--avoid id,id] [--seed N] [--out DIR]
 //                 [--options 3]                show three dealt directions to choose from, write nothing
@@ -39,6 +42,7 @@ if (argv.includes('-h') || argv.includes('--help')) {
   node draw.mjs --sector <sector> --brief "one line" [--sections hero,showcase,pricing,footer]
                 [--surface page|product] [--tone quiet|bold|warm|technical|playful|luxury|editorial]
                 [--have photography,product-photo,product-ui,illustration,video] [--keep palette,type]
+                [--requested-images]   the user asked for pictures to be added; without it, none are sourced
                 [--avoid id,id] [--seed N] [--out DIR] [--options 3] [--direction <id>]
   node draw.mjs --show
   node draw.mjs --redraw hero|type|palette|photos|section:<role>|section:<role>=<id>|direction
@@ -223,6 +227,9 @@ if (opt('redraw')) {
     surfaceInferred: !surfaceGiven,
     tone: TONES.includes(toneOpt) ? toneOpt : null,
     have: list(opt('have')), keep: list(opt('keep')), avoid: list(opt('avoid')),
+    // Pictures beyond the project's own are sourced only when the user asked for them. This is the one
+    // switch that permits generating, searching the open collections or using the dealt photographs.
+    extend: Boolean(opt('requested-images')),
     sections: rawSections.map((r) => ROLE_ALIAS[r] || r),
     requestedSections: rawSections,
     direction: typeof opt('direction') === 'string' ? opt('direction') : null,
@@ -261,6 +268,9 @@ console.log(render(sheet));
 function imageryMode(input) {
   if (input.have.includes('product-photo') || input.have.includes('photography')) return 'own';
   if (['saas', 'dev-tool', 'ai-product', 'consumer-app', 'dashboard', 'docs', 'component', 'finance'].includes(input.sector)) return 'interface';
+  // Everything else starts from `none`: the project's own pictures, drawings in code, or type and colour.
+  // Only an explicit request unlocks sourcing (generated, open collections, the dealt photographs).
+  if (!input.extend) return 'none';
   if (['physical-product', 'ecommerce'].includes(input.sector)) return 'no-product-photo';
   return 'atmosphere';
 }
@@ -269,13 +279,13 @@ function worksWithoutPictures(x) { return !pictureLed(x) || (x.tags || []).some(
 
 // The directions that suit this brief and the assets it really has.
 function directionPool(input) {
-  const has = (need) => input.have.includes(need) || need === 'photography'; // the photo library covers photography
+  const has = (need) => input.have.includes(need) || (need === 'photography' && Boolean(input.extend)); // the photo library is external: only with a request
   let pool = L.directions.filter((d) => (d.sectors.includes(input.sector) || d.sectors.includes('*')) && !input.avoid.includes(d.id));
   const feasible = pool.filter((d) => (d.needs || []).every(has));
   if (feasible.length) pool = feasible;
   // directions built on photographs of the subject are not dealt when the subject cannot be photographed honestly
   const mode = imageryMode(input);
-  if (mode === 'interface' || mode === 'no-product-photo') { const plain = pool.filter((d) => !d.needsPictures); if (plain.length >= 3) pool = plain; }
+  if (['interface', 'no-product-photo', 'none'].includes(mode)) { const plain = pool.filter((d) => !d.needsPictures); if (plain.length >= 3) pool = plain; }
   if (input.tone) { const toned = pool.filter((d) => (d.tones || []).includes(input.tone)); if (toned.length >= 2) pool = toned; }
   if (!pool.length) pool = L.directions.filter((d) => !input.avoid.includes(d.id));
   return pool;
@@ -294,7 +304,7 @@ function deal(input, redraws) {
   const pool = directionPool(input);
   const forced = input.direction ? L.directions.find((d) => d.id === input.direction) : null;
   const dir = forced || pick(fresh(pool, recent('direction', Math.min(5, pool.length - 1))));
-  const s = { version: 1, at: new Date().toISOString(), seed: startSeed, redraws, input, surface: input.surface || 'page', imagery: imageryMode(input), allow: dir.allow || [], direction: dir };
+  const s = { version: 1, at: new Date().toISOString(), seed: startSeed, redraws, input, surface: input.surface || 'page', imagery: imageryMode(input), extend: Boolean(input.extend), allow: dir.allow || [], direction: dir };
   s.hero = dealHero(dir, input, []);
   s.type = input.keep.includes('type') ? null : dealType(dir, []);
   s.palette = input.keep.includes('palette') ? null : dealPalette(dir, input, []);
@@ -335,6 +345,9 @@ function dealPalette(dir, input, exclude) {
 }
 function dealPhotos(dir, input) {
   if (dir.photos === false) return null; // image-free directions
+  // The dealt photographs are external (picsum / Unsplash), so they are only dealt when the user asked
+  // for pictures. Without that request there is nothing to fill a picture slot with, and that is fine.
+  if (!input.extend) return null;
   const words = briefWords(input.brief);
   const mode = imageryMode(input);
   const SOFT_SETS = ['architecture', 'fog-and-quiet', 'sky-and-space', 'texture', 'water'];
@@ -430,6 +443,11 @@ function adjustments(bp, s) {
   if (bp.archetype && /single action[^.;]{0,40}?\b(?:text link|underlined (?:text )?link)/i.test(text)) notes.push('Its action is a text link: the primary action on the first screen is a real button (filled or solid-bordered, 44px or taller), placed where the blueprint puts the link. A second action may stay a link.');
   if (s.type?.class === 'condensed-heavy' && /\d+(?:\.\d+)?vw/.test(text)) notes.push('Its vw sizes assume a face of normal width: with this condensed display face, size the words to fill the measure the blueprint gives them instead of copying the vw value.');
   if (/\b0[1-9]\b(?![:.,]\d)|numbered|index number/i.test(text)) notes.push('It numbers things 01, 02: drop the numbers unless they are real data (a price, a date, a count).');
+  // A blueprint written for photographs still has to be buildable when there are none: the geometry stays,
+  // the slot becomes something the page can actually show.
+  if (s.imagery === 'none' && hasUnnegated(/\b(?:photographs?|photos?|images?|pictures?|portraits?|frames?|full-bleed|footage|video)\b/i)) {
+    notes.push('It places a picture and this build has none: keep the geometry and the space, and rebuild that slot as a drawing of the subject in code, a whole field of colour, or a change of scale. No placeholder, no grey box, no stock.');
+  }
   return notes;
 }
 // Every blueprint of a role that suits this direction and this build's real assets.
@@ -499,7 +517,7 @@ function render(s) {
   p(`| Colour | ${s.palette ? s.palette.name : 'kept from the brand'} |`);
   p(`| Sections | ${s.sections.map((x) => x.role + (x.name && x.name !== x.role ? ' (' + x.name + ')' : '')).join(' → ')} |`);
   p(`| Motion | ${s.motion ? s.motion.name : '—'} |`);
-  p(`| Photographs | ${s.photos ? 'the "' + (s.photos.title || s.photos.set) + '" set, as atmosphere' : 'none'} |`);
+  p(`| Photographs | ${s.photos ? 'the "' + (s.photos.title || s.photos.set) + '" set, as atmosphere' : (s.extend ? 'none' : 'none — not requested')} |`);
   p();
   p('This is the direction for this build. Adopt it. Do not blend it with the layout you would have made anyway,');
   p('and do not redraw because it is unfamiliar: unfamiliar is the point. Redraw a slot only when it conflicts');
@@ -549,31 +567,37 @@ function render(s) {
     p();
   } else { p('## 4. Colour'); p('Kept from the brand. ' + (d.colour || '')); p(); }
   p('## 5. Imagery');
-  // where to look for real pictures of the subject's world, with first queries built from the brief
-  const qs = assetQueries(s.input);
+  // Only a user request unlocks sourcing. Without it the sheet names no command and no collection, so the
+  // builder cannot read "go and find pictures" between the lines.
+  const extend = Boolean(s.extend ?? s.input?.extend);
+  const qs = extend ? assetQueries(s.input) : [];
   const find = qs.length
-    ? `\`${ASSETS_CMD} "${qs[0]}"\`${qs.length > 1 ? `, then ${qs.slice(1).map((q) => `"${q}"`).join(' and ')}` : ''}, then queries from your inventory (its street, its materials, its trade's tools and history)`
-    : `\`${ASSETS_CMD} "<a place, material or object from your inventory>"\``;
+    ? `\`${ASSETS_CMD} "${qs[0]}" --user-requested\`${qs.length > 1 ? `, then ${qs.slice(1).map((q) => `"${q}" --user-requested`).join(' and ')}` : ''}, then queries from your inventory (its street, its materials, its trade's tools and history)`
+    : `\`${ASSETS_CMD} "<a place, material or object from your inventory>" --user-requested\``;
   const MODE = {
-    interface: '**This subject is software and there are no screenshots, so its pictures are its own interface.** Wherever this sheet says photograph, image or object, build a believable fragment of the product in HTML at real size (real labels, numbers that add up, one item hovered or selected), put the attribute `data-ui` on its root, and crop or scale it the way the blueprint treats a photograph: a full-bleed close crop, a tile, the fixed half of a split. Where a fragment makes no sense, use a flat colour field with type on it. Never a fake dashboard of grey bars, never a device frame. If the product works on something physical (ships, plants, buildings, a city), one real picture of that world can carry a section: find it with `' + ASSETS_CMD + ' "<that world>"`, download it with `--get`, credit it on the page, and never let it pass for the product or its customers.',
-    'no-product-photo': '**There are no photographs of the product and none can be faked.** Wherever this sheet calls for a picture of the object, draw the object: its pieces as flat shapes in inline SVG, large, in one graphic language and in the colours that make it worth buying (a glaze, a finish, a material), never grey placeholders (references/imagery.md §8). **Around the object, use real pictures of its world** from the open collections: its material up close, its town in old postcards, its craft in engravings, a museum piece of the same kind, never one a visitor could take for the product itself (references/imagery.md §3). Start with ' + find + '. Download what you use with `--get` and credit every one on the page (`--credits` prints the footer line). Type at scale and full colour fields carry the rest; the dealt photographs only where they plainly do not pretend to be the product. In your report, say that product photography is needed and which drawings it will replace, and list every found picture with its source and licence.',
-    atmosphere: '**The project has no photographs of its own yet.** First choice: **real pictures of the subject\'s world from the open collections**: its city and street in old postcards and photographs, an old map of the neighbourhood, its materials up close, its trade in engravings, museum objects of its kind (references/imagery.md §3). Start with ' + find + '. Download what you use into the project with `--get` and credit every one on the page (`--credits` prints the footer line). They show the world around the client, never the client\'s own room, dish, product, person or team. Second, for what no honest picture exists of: draw the subject\'s own things in code, large, in one flat graphic language and the palette\'s real colours (its tiles, its windows, its objects; references/imagery.md §8). Third: the dealt photographs, only where an honestly generic picture fits (the sea, the weather, a material), never one a visitor could take for the thing itself and never an unrelated scene. One treatment for all of them. If this direction is built on photographs, plan the set before building (four to six pictures of one family) and reuse them at different crops and scales instead of finding or drawing a new picture for every slot; keep drawings as `<symbol>` + `<use>` or generate them with a small script so the page stays light. List every found picture (with its source and licence), every dealt photograph and every drawing that stands in for photography in your report.',
-    own: '**Use the images that belong to the project in every picture slot.** For slots they cannot fill, real pictures of the subject\'s world from the open collections come next (start with ' + find + '; credit them on the page), then the dealt photographs.',
+    interface: '**This subject is software and there are no screenshots, so its pictures are its own interface.** Wherever this sheet says photograph, image or object, build a believable fragment of the product in HTML at real size (real labels, numbers that add up, one item hovered or selected), put the attribute `data-ui` on its root, and crop or scale it the way the blueprint treats a photograph: a full-bleed close crop, a tile, the fixed half of a split. Where a fragment makes no sense, use a flat colour field with type on it. Never a fake dashboard of grey bars, never a device frame.' + (extend
+      ? ' If the product works on something physical (ships, plants, buildings, a city), a real picture of that world can carry a section: the user asked for pictures, so search it with `' + ASSETS_CMD + ' "<that world>" --user-requested`, download it with `--get`, credit it on the page, and never let it pass for the product or its customers.'
+      : ' Nothing is sourced: the product\'s own interface is the whole of its imagery.'),
+    'no-product-photo': '**There are no photographs of the product and none can be faked.** Wherever this sheet calls for a picture of the object, draw the object: its pieces as flat shapes in inline SVG, large, in one graphic language and in the colours that make it worth buying (a glaze, a finish, a material), never grey placeholders (references/imagery.md §8). **Around the object, real pictures of its world** from the open collections come next — the user asked for pictures: its material up close, its town in old postcards, its craft in engravings, a museum piece of the same kind, never one a visitor could take for the product itself (references/imagery.md §3). Start with ' + find + '. Download what you use with `--get` and credit every one on the page (`--credits` prints the footer line). Type at scale and full colour fields carry the rest. In your report, say that product photography is needed and which drawings it will replace, and list every found picture with its source and licence.',
+    atmosphere: '**The user asked for pictures and the project has none of its own.** First choice: **real pictures of the subject\'s world from the open collections**: its city and street in old postcards and photographs, an old map of the neighbourhood, its materials up close, its trade in engravings, museum objects of its kind (references/imagery.md §3). Start with ' + find + '. Download what you use into the project with `--get` and credit every one on the page (`--credits` prints the footer line). They show the world around the client, never the client\'s own room, dish, product, person or team. Then, for what no honest picture exists of: draw the subject\'s own things in code, large, in one flat graphic language and the palette\'s real colours (its tiles, its windows, its objects; references/imagery.md §8). Then the dealt photographs, only where an honestly generic picture fits (the sea, the weather, a material), never one a visitor could take for the thing itself and never an unrelated scene. One treatment for all of them. If this direction is built on photographs, plan the set before building (four to six pictures of one family) and reuse them at different crops and scales; keep drawings as `<symbol>` + `<use>` or generate them with a small script so the page stays light. List every found picture (with its source and licence), every dealt photograph and every drawing that stands in for photography in your report.',
+    own: '**Use the images that belong to the project in every picture slot.** The user also asked for pictures, so for slots the project cannot fill: real pictures of the subject\'s world from the open collections (start with ' + find + '; credit them on the page), then the dealt photographs.',
+    none: '**No pictures beyond the project\'s own.** The user has not asked for imagery to be added, so nothing is generated, searched or downloaded: do not run `assets.mjs`, do not call an image tool, do not use stock. Build from what exists: the project\'s own photographs, product shots and real screenshots where it has them; the subject drawn in code (SVG/CSS) for what no honest picture exists of; type and colour alone, on purpose (references/imagery.md §9) — a legitimate design, not a gap to disguise. A section that was going to be a photograph needs a different composition, not a placeholder: no grey box, no "image here", no fake screen made of bars. If you believe the page truly needs a picture, stop and ask the user; only then re-deal with `--requested-images`.',
   };
-  p(MODE[s.imagery || 'atmosphere']); p(); p(d.imagery);
+  p(MODE[s.imagery || 'none']); p();
+  // The direction's own imagery note assumes photographs; with none coming, it would contradict the
+  // paragraph above, so it is only printed when there are pictures to place.
+  if (extend || s.imagery === 'own' || s.imagery === 'interface') p(d.imagery);
   p();
+  // There is no picture quota, in either mode. What can still be said is what replaces one.
+  p('**No picture quota.** Nothing is counted and nothing is required: the page is judged on what each picture does for the subject, not on how many there are. One dominant picture beats six small ones, and a surface that carries none is legitimate when type, colour and full content carry it (references/imagery.md §9).');
+  p('Substance is not optional, though: removing pictures leaves a hole, and the things that fill it are scale (the main thing set larger), a whole field of colour, real drawings of the subject, and every section delivering its full information — never an empty screen, never an ornament.');
   if ((s.input.surface || 'page') === 'product') {
-    p('**Floor (the inspector checks it in this mode):** the pictures are the product\'s own interface, built in HTML at true size with believable content and marked `data-ui` (references/imagery.md §7) — **not** a fake dashboard of grey bars. Photographs are not required; where the software has a real world around it (a trade, a place, a material) one or two found pictures, downloaded and credited, may carry a section. The motion floor is lower than on a page but never zero: feedback on every control, real state transitions, and one signature move. `inspect.mjs --surface product` and `lint.mjs --surface product` relax exactly the rules listed in references/product-surfaces.md §5 — and nothing else.');
-  } else {
-    p('**Floor (the inspector checks it):** at least four real pictures on the page, usually six to twelve; SVG drawings do not count. One moving picture where an honest clip exists: `node <skill>/scripts/assets.mjs --video "<query>"`, used as a muted loop with a poster frame. Whatever this direction says about pictures, it is carried out with real ones.');
-    // The floor counts pictures wherever they sit, so a palette with a saturated ground does not get a
-    // smaller quota — it gets a different address for them. The policy itself is printed in full in the
-    // Colour section above, so it is pointed at rather than repeated.
-    if (s.palette?.pictures) p('**This palette\'s ground is a saturated colour, so the pictures go in `--field-*`, never on the ground** (see §4). The floor itself is unchanged: the page still owes four or more real pictures, and the field is where they go.');
+    p('**On this surface** the pictures are the product\'s own interface, built in HTML at true size with believable content and marked `data-ui` (references/imagery.md §7) — **not** a fake dashboard of grey bars. The motion floor is lower than on a page but never zero: feedback on every control, real state transitions, and one signature move. `inspect.mjs --surface product` and `lint.mjs --surface product` relax exactly the rules listed in references/product-surfaces.md §5 — and nothing else.');
   }
+  if (s.palette?.pictures) p('**This palette\'s ground is a saturated colour, so any picture goes in `--field-*`, never on the ground** (see §4).');
   if (s.photos) {
     p();
-    p(s.imagery === 'interface' ? `Optional atmosphere, two at most, from the "${s.photos.title || s.photos.set}" set (${s.photos.note}). The page does not need them.` : `Photographs dealt for this build, from the "${s.photos.title || s.photos.set}" set (${s.photos.note})`);
+    p(s.imagery === 'interface' ? `Optional atmosphere, two at most, from the "${s.photos.title || s.photos.set}" set (${s.photos.note}). The page does not need them.` : `Photographs dealt for this build, from the "${s.photos.title || s.photos.set}" set (${s.photos.note}), because the user asked for pictures`);
     p('Order of preference for imagery: (1) the project\'s own photographs and product shots; (2) images you generate, if an image tool is');
     p('available; (3) real pictures of the subject\'s world found in the open collections (assets.mjs, downloaded and credited on the page);');
     p('(4) drawings of the subject in code; (5) these. They are real photographs (Unsplash licence, served by picsum.photos) of places, light and');
@@ -585,7 +609,7 @@ function render(s) {
     p('add `?grayscale` to desaturate. ' + (s.imagery === 'interface' ? 'Use at most two.' : 'Use three to six of them, not all eight.') + ' Always set `width`, `height`, `alt` and `loading="lazy"` (not on the hero image).');
     if (s.photos.others?.length) p(`Other sets that fit this brief: ${s.photos.others.join(', ')} — \`node draw.mjs --photos <set>\` prints one in full; \`--photos list\` shows all sets. Taking photographs from another set is your call and is not a redraw; keep them to one light and one treatment.`);
   } else if (d.photos === false) {
-    p(); p('This direction does not lead with photographs; it still carries the picture floor below, with real pictures placed where the direction allows them.');
+    p(); p('This direction does not lead with photographs. Nothing is dealt and nothing is owed: work from the project\'s own images where it has them, drawings in code, and type and colour.');
   }
   p();
   const adjust = (bp) => { const n = adjustments(bp, s); if (n.length) { p(); p('Adjusted for this page:'); for (const x of n) p(`- ${x}`); } };

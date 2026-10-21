@@ -13,28 +13,28 @@
       "id": 2,
       "name": "restaurant-osteria",
       "prompt": "Make a one-page website for Osteria Nove, a 38-seat Italian restaurant in Alfama, Lisbon. Handmade pasta, a short natural wine list, dinner only, Tuesday to Saturday from 19:00. Address: Rua dos Remédios 9. Reservations by phone (+351 21 000 0009) or email (mesa@osterianove.pt). The page needs the menu (invent a believable short one: antipasti, pasta, dolci, with prices in euros), hours, address and how to book. We have no photographs yet. Static HTML/CSS/JS.",
-      "expected_output": "A one-page restaurant site with a specific idea (for example the page as the menu itself), the menu set typographically without divider lines, practical information easy to find, bundled photographs used only as atmosphere and listed for replacement, and all house rules met.",
+      "expected_output": "A one-page restaurant site with a specific idea (for example the page as the menu itself), the menu set typographically without divider lines, practical information easy to find, no external imagery sourced (none was requested: no search, no stock, no generated pictures), and all house rules met.",
       "files": []
     },
     {
       "id": 3,
       "name": "portfolio-designer",
       "prompt": "I'm Mara Lindqvist, a product designer in Stockholm with eight years in fintech and health apps. I need a portfolio homepage: six selected projects (make up plausible names, clients, years and one-line descriptions), a short about paragraph, and a way to contact me (mara@lindqvist.studio). I don't have project images ready, so design it so it still looks finished without them, or use placeholders that I can swap. Static HTML/CSS/JS.",
-      "expected_output": "A portfolio page that looks finished without project imagery (a typographic index, a name-led hero, or atmosphere photographs clearly marked for replacement), with a designed footer, a phone layout that is its own composition, and all house rules met.",
+      "expected_output": "A portfolio page that looks finished without project imagery (a typographic index, a name-led hero, or the work's own marks drawn in code), no external pictures sourced and no grey placeholders, with a designed footer, a phone layout that is its own composition, and all house rules met.",
       "files": []
     },
     {
       "id": 4,
       "name": "product-ceramics",
       "prompt": "Launch page for Kiln, a ceramic pour-over coffee set (dripper, carafe and two cups) that is hand-glazed in small batches in Porto. It costs 84 euros and ships across the EU within a week. The glaze is mixed by hand so no two sets are identical. We have not shot product photos yet, so there are no images of the set. One page, with a way to buy (a button is enough). Static HTML/CSS/JS.",
-      "expected_output": "A product page that does not fake product photography: it either commits to type and colour, uses one shape from the object as a motif, or uses atmosphere photographs honestly, with the price and purchase action clear, and all house rules met.",
+      "expected_output": "A product page that does not fake product photography and does not source any: it commits to type and colour, or uses one shape from the object as a motif drawn in code, with the price and purchase action clear, and all house rules met.",
       "files": []
     },
     {
       "id": 5,
       "name": "guesthouse-ericeira",
       "prompt": "Website for Casa Mirante, a six-room guesthouse on the cliffs above Ericeira, Portugal. Rooms from 140 euros a night with breakfast included; ten minutes' walk to the surf at Ribeira d'Ilhas; open March to November. One page: what it is, the rooms, what's nearby, and how to book (email reservas@casamirante.pt). We have no photographs yet. Static HTML/CSS/JS.",
-      "expected_output": "A calm, photograph-led or type-led one-pager whose hero is one clear thing, with rooms and booking information easy to find, bundled coast photographs used as atmosphere and listed for replacement, and all house rules met.",
+      "expected_output": "A calm one-pager whose hero is one clear thing, carried by type and colour or by the place drawn in code, with rooms and booking information easy to find, no external pictures sourced and no placeholder boxes, and all house rules met.",
       "files": []
     },
     {
@@ -63,6 +63,13 @@
       "name": "sketch-before-build",
       "prompt": "Landing page for Tideline, a two-room guesthouse above a fishing harbour in Brittany. Five rooms are described in the brief but only two exist; the other three are sample names to be confirmed. Sections: what it is, the two rooms, the harbour, rates, and a booking enquiry. No brand exists beyond the name. Static HTML/CSS/JS.",
       "expected_output": "Two artifacts, in this order, and the order is what is being scored. First a direction sketch at .frontend-studio/mockup.html: one static file using Tailwind from a CDN, carrying the dealt palette as real tokens, the dealt type pairing, and one skeleton per section, with no photographs, no footage, no motion and no full body copy. Then an explicit request for approval naming the four redraw options: build, direction, palette, type. The answer is recorded with mock.mjs --approve; .frontend-studio/sketch-approval.json must name build, and mock.json must contain no starter placeholders. Only after that, and only when mock.mjs --check exits 0, the built page. A straight build with no sketch, a sketch presented after the build had already begun, a missing approval record, or any build file created while --check is non-zero is a fail no matter how good the final page is.",
+      "files": []
+    },
+    {
+      "id": 10,
+      "name": "text-led-no-images",
+      "prompt": "A single page for Fieldnotes, a quarterly of long-form essays on walking. This issue has four essays (invent titles, authors and a one-line standfirst for each), a letter from the editor of about 150 words, and subscription details: 24 euros a year, four issues, posted worldwide. The essays are dense text; we do not want photographs anywhere on this page and we do not want any sourced images. Static HTML/CSS/JS.",
+      "expected_output": "A page that carries itself on typography and colour with no pictures at all: zero calls to assets.mjs, no generated or stock imagery, no grey placeholder boxes, the four essays set as a readable index with full standfirsts, and zero FAIL findings under lint.mjs and inspect.mjs in page mode — proving the gate has no picture quota.",
       "files": []
     }
   ]

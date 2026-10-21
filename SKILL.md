@@ -48,8 +48,9 @@ This skill replaces those defaults with decisions, in five ways:
 One warning learned in testing. Taking the ornaments away is only half the job; a surface that has lost
 its labels, rules and cards and gained nothing in their place reads as thin, and blind jurors rightly
 prefer a richer surface with tells over an empty one without them. The other half is substance: type set
-larger, whole fields of colour, real pictures of this subject's world (found or drawn), and every
-section carrying its full content. The skill is built to give you that; do not trade it for restraint.
+larger, whole fields of colour, the subject's own shapes drawn large when there is no picture, real
+pictures where the project owns them, and every section carrying its full content. The skill is built to
+give you that; do not trade it for restraint.
 
 In the commands below `<skill>` is this skill's folder. Run them from the project's root, so the working
 files land in `.frontend-studio/` there. The scripts need Node 22+ and an installed Chrome, Edge or
@@ -61,13 +62,14 @@ Decide this first; it changes which rules are hard and which are guidance.
 
 | Mode | What it covers | House rules |
 | --- | --- | --- |
-| **`page`** (default) | Public-facing pages: landing, marketing, portfolio, product page, one-pager, event, restaurant, docs site | In full. Four real pictures minimum, the motion floor, no cards, no rules, no monospace, no numbering. |
+| **`page`** (default) | Public-facing pages: landing, marketing, portfolio, product page, one-pager, event, restaurant, docs site | In full. The motion floor, no cards, no rules, no monospace, no numbering. No picture quota: imagery is the project's own unless the user asks for more. |
 | **`product`** | Application surfaces: dashboards, admin panels, tool UIs, data tables, settings, design systems, component libraries | A documented subset. Tables may keep lines, data may keep monospace and numbering, tiles and cards are legitimate, panels may cast a shadow. Gradients, glow, emoji, violet and cream-and-terracotta are still banned. See `references/product-surfaces.md`. |
 
 The **procedural core is identical in both modes**: inventory the subject, argue the page as claims,
 draw a direction, find the idea, write real words, build still first, pass the gate, look at your own
-screenshots. What changes is only the ornament budget and the picture/motion floor. Do not use `product`
-as an excuse to skip the idea; a dashboard template is as forgettable as a landing-page template.
+screenshots. What changes is only the ornament budget, the motion floor, and how imagery is treated. Do not
+use `product` as an excuse to skip the idea; a dashboard template is as forgettable as a landing-page
+template.
 
 Decide the mode yourself and pass it explicitly. `draw.mjs` infers one when you do not: sectors that are
 software by nature (`dashboard`, `docs`, `component`) infer `product`, every other sector infers `page`,
@@ -86,11 +88,12 @@ hard checkpoint: step 7 does not start until `node <skill>/scripts/mock.mjs --ch
 ### 1. Read the brief and the project
 
 Find out what is real: the subject, the audience, the one thing the surface must get someone to do, the
-stack, any existing brand (colours, fonts, logo), and above all **what imagery truly exists**: the
-project's own photographs or product shots, a real interface that can be shown, an image generation tool
-you can call, or nothing. Do not plan around pictures you do not have. Nothing of its own is rarely
-nothing at all: the subject's city, street, materials and history are in open archives and museums, free
-to use with a credit (step 7, `scripts/assets.mjs`).
+stack, any existing brand (colours, fonts, logo), and **what imagery the project actually owns**: its own
+photographs or product shots, a real interface that can be shown, or nothing. Do not plan around pictures
+that do not exist, and **do not go looking for any on your own initiative**: pictures from outside —
+generated, searched in open collections, or stock — are sourced only when the user asks for them (step
+7.4). A page with no pictures is a legitimate design (step 7.4, `references/imagery.md` §9); the
+inventory of the subject is what fills the surface then.
 
 If the request is vague, decide and state your reading in one line instead of asking. Ask only when a
 missing fact blocks the work (for example, no product name).
@@ -125,7 +128,7 @@ chart nobody reads, a table, and a settings pane.
 ```bash
 node <skill>/scripts/draw.mjs --sector <sector> --brief "<one line about the subject>" \
   --sections <roles in the order of your argument> [--surface page|product] [--tone <tone>] \
-  [--have <assets>] [--keep palette,type] --options 3
+  [--have <assets>] [--requested-images] [--keep palette,type] --options 3
 ```
 
 This deals three directions and prints a short summary of each. Hold each one against your inventory:
@@ -145,13 +148,16 @@ node <skill>/scripts/draw.mjs <the same arguments, without --options> --directio
 - `--tone` (optional): quiet, bold, warm, technical, playful, luxury, editorial. Only pass it when the
   brief clearly asks for one.
 - `--have`: assets that really exist, comma-separated: `photography` (the project's own photographs of the
-  place, people or work), `product-photo` (photographs of the specific product, or an image tool that can
-  make them), `product-ui` (real screenshots), `illustration`, `video`. Leave it out if you have none: the
-  draw then avoids compositions that depend on them and the sheet says how to fill picture slots honestly
-  (software shows its own interface built in HTML; a product with no photographs is drawn and set among
-  real pictures of its world, never a fake product shot). Pictures you will find in the open collections
-  are not the project's own; leave them out of `--have`.
-- **`--keep palette,type`**: when the brand already fixes colours or typefaces. The draw then deals only the
+  place, people or work), `product-photo` (photographs of the specific product), `product-ui` (real
+  screenshots), `illustration`, `video`. Leave it out if you have none: the draw then avoids compositions
+  that depend on them, deals no photographs, and the sheet says how to fill picture slots honestly
+  (software shows its own interface built in HTML; a product with no photographs is drawn, never faked).
+  Only assets the project owns belong here.
+- **`--requested-images`**: pass it only when the user has explicitly asked for pictures to be added.
+  Without it the sheet deals no photographs, prints no search command, and tells the builder not to
+  generate, search or download anything; a surface with no pictures is built from type, colour and the
+  subject's own shapes. Record the user's words in your report.
+- `--keep palette,type`: when the brand already fixes colours or typefaces. The draw then deals only the
   composition, and you map the brand's values onto the roles.
 
 Changing the library itself, rather than using it: run `node <skill>/scripts/audit.mjs` first and last. It
@@ -166,7 +172,7 @@ The command prints a **direction sheet**. It is the art direction for this build
   the familiar layout is the one this skill exists to prevent.
 - **Read the palette's `pictures` line before the imagery step.** Nine palettes in the library deal a
   saturated mid-tone ground (cobalt, mustard, carmine, bubblegum, ultramarine, orange). Those name the
-  neutral field the pictures go in, and the floor paragraph says so too. A photograph on one of those
+  neutral field any picture goes in, and the imagery paragraph says so too. A photograph on one of those
   grounds reads as mud and `inspect.mjs` fails it as `picture-on-colour`.
 - Redraw one slot (`--redraw hero | type | palette | photos | section:<role> | direction`) only for a
   reason you can state: it contradicts a stated brand constraint, or needs an asset that does not exist.
@@ -284,8 +290,8 @@ would be read as the design's content.
 
 What it deliberately leaves out, because each one costs time and none answers the question being asked:
 photographs, footage, motion, interactive states, the full body copy, and polish beyond the two widths it
-sketches at. **Do not run `inspect.mjs` on it.** It is a sketch; the gate's floors — four real pictures, a
-motion layer — belong to the build, and failing them here says nothing.
+sketches at. **Do not run `inspect.mjs` on it.** It is a sketch; the gate's floors — the motion layer,
+the picture rules — belong to the build, and failing them here says nothing.
 
 **Then stop and ask. The build is blocked until the answer is recorded.** Show the file, say what you
 changed from the sheet if anything, and ask one question with four answers:
@@ -332,34 +338,36 @@ is not finished. Order of work:
    subject. Neighbouring sections must not share a layout. **Carry the idea into every section,** pricing,
    FAQ and footer included: the commonest failure in the study, even among good sites, is a distinctive
    first screen followed by stock blocks.
-4. **Imagery,** in this order of preference:
-   1. the project's own;
-   2. generated, if you have an image tool;
-   3. **real pictures of the subject's world from the open collections,** whenever an honest one exists.
-      Search them with `node <skill>/scripts/assets.mjs "<query>"` (Openverse, Wikimedia Commons, the Art
-      Institute of Chicago and the Met; only licences that allow commercial use, by default). Search the
-      inventory, not the category: its street in old postcards, an old map of the neighbourhood, its
-      material up close, its trade in engravings, a museum object of its kind, a botanical plate, a star
-      chart. Use them large and with intent: one archival photograph as the hero, an engraving enlarged
-      into the surface's motif, the real map of the street as the contact section. Look at each before
-      choosing; `--get <ref>` downloads it into `assets/` and records its source and licence, and
-      `--credits` prints the credit line for the footer. A found picture shows the world around the client
-      and is never presented as the client's own product, room, dish, person or team;
-   4. **drawn in code from the subject itself,** for what no honest picture exists of (its objects, its
+4. **Imagery: the project's own, unless the user asked for more.** The default order is short:
+   1. **the images the project owns** — its photographs, product shots, real screenshots;
+   2. **drawn in code from the subject itself,** for what no honest picture exists of (its objects, its
       tiles, its windows, its product's interface, made as one consistent flat graphic language in the
       palette's real colours);
-   5. the photographs dealt on the sheet, only where an honestly generic picture fits (the sea for a sea
-      house), never as a stand-in for the subject;
-   6. type and colour alone.
+   3. **type and colour alone,** done on purpose (`references/imagery.md` §9). This is a legitimate
+      design, not a gap to disguise: in the study the sites with no imagery scored slightly *above* the
+      set (7.5 against 7.2).
 
-   **The floor, which the inspector checks in `page` mode:** at least four real pictures on the surface,
-   usually six to twelve (photographs, archival images, maps, engravings, footage, raster artwork; for
-   software, its cropped interface fragments count too). SVG drawings do not count toward the floor: draw
-   what no picture exists of, and still carry real pictures. Add one moving picture wherever an honest clip
-   exists: search it with `assets.mjs --video "<query>"` and use it as a muted loop with a poster frame.
-   Models skip pictures and footage because finding them is work; the surface fails without them. In
-   `product` mode the floor is replaced by the interface-fragment rule in
-   `references/product-surfaces.md` §5.
+   **Nothing is sourced on your own initiative.** Generated images, pictures from open collections and
+   stock are added only when the user has explicitly asked for them, and `draw.mjs --requested-images` is
+   how that request reaches the sheet. Without it: do not run `assets.mjs`, do not call an image tool, do
+   not reach for a stock URL. If a section was going to be a picture, change its composition — never leave
+   a placeholder, a grey box, an "Image here" or a fake screen of grey bars. If you believe the page truly
+   needs a photograph, stop and ask the user; when they say yes, record their words in the report.
+
+   Only after that request, and in this order: images you generate; then **real pictures of the subject's
+   world from the open collections** — `node <skill>/scripts/assets.mjs "<query>" --user-requested`
+   (Openverse, Wikimedia Commons, the Art Institute of Chicago and the Met; only licences that allow
+   commercial use, by default). Search the inventory, not the category: its street in old postcards, an
+   old map of the neighbourhood, its material up close, its trade in engravings, a museum object of its
+   kind. `--get <ref> --user-requested` downloads it into `assets/` and records its source and licence;
+   `--credits` prints the credit line for the footer. A found picture shows the world around the client
+   and is never presented as the client's own product, room, dish, person or team. Last, the photographs
+   dealt on the sheet, only where an honestly generic picture fits.
+
+   **There is no picture quota.** Nothing counts pictures and nothing requires them: the inspector
+   measures what a picture does wrong — laid on a saturated ground, broken — and nothing about how many
+   there are. What is not optional is substance: where a picture would have been, the page needs type at
+   scale, a whole field of colour, a drawing of the subject, or its full content — not an empty screen.
 
    `references/imagery.md` covers searching, licences and credits, video, drawing, crops and treatments.
 5. **The live thing** from step 4, built into the section where it proves the claim (often the hero or the
@@ -412,12 +420,15 @@ counts the elements that really move while the surface loads and is scrolled, an
 matter more than entrances) but it is never zero. The layer has four parts:
 
 1. **The signature move** named on the sheet: one, done well.
-2. **An entrance for the parts of every section:** the heading, then the text, then the picture, staggered
-   by 60–90ms, rising 16–32px with opacity, triggered once as the section enters. Not one fade for the
-   whole block, and never content that stays hidden if the script fails.
+2. **An entrance for the parts of every section:** the heading, then the text, then the picture if there
+   is one, staggered by 60–90ms, rising 16–32px with opacity, triggered once as the section enters. Not
+   one fade for the whole block, and never content that stays hidden if the script fails.
 3. **Feedback on every control:** press, hover and focus on buttons, links, cards and the live thing.
-4. **One moving picture:** a found clip as a muted loop, a slow scale or drift on a photograph, or a
-   scroll-linked move on the hero picture.
+4. **One moving picture where the surface has a picture:** a found clip as a muted loop, a slow scale or
+   drift on a photograph, or a scroll-linked move on the hero picture. On a surface with no pictures, the
+   same slot goes to one thing that carries the signature move — the wordmark, a line of type, a drawing
+   of the subject — so the page does not read as static. The inspector counts moving elements, not
+   pictures.
 
 Transform, opacity and clip-path only; every move has a `prefers-reduced-motion` fallback that keeps the
 content and drops the travel. A move that changes the colour or the layout of whole screens (colour by
@@ -430,11 +441,12 @@ that failed to appear.
 
 Tell the user, briefly: the direction dealt (name and seed) and any redraws with reasons; the sketch path
 and the answer recorded for it (`build` or which redraw), with the `--check` result; the idea sentence and
-the live thing; the final scores from your last critique round and what still falls short;
-every found picture and clip with its title, creator, licence and source page (`assets.mjs --credits`
-prints the list) and where its credit sits on the surface; which bundled photographs and which drawings
-stand in for photography (so they can be replaced); and any sample content that must be swapped before
-launch. Do not claim a check you did not run.
+the live thing; the final scores from your last critique round and what still falls short; whether the page
+carries pictures at all and what fills the places they would have taken; if you sourced any because the
+user asked, every found picture and clip with its title, creator, licence and source page
+(`assets.mjs --credits` prints the list), where its credit sits on the surface, and the user's words that
+asked for it; which drawings stand in for photography (so they can be replaced); and any sample content
+that must be swapped before launch. Do not claim a check you did not run.
 
 ## House rules
 
@@ -518,7 +530,9 @@ Short form. Numbers are from the study unless marked as house style.
   sites leave media square).
 - No image is better than a placeholder, an icon, or an abstract shape. A picture drawn for this subject,
   in its colours and with care, is better than either. A real picture of its world, found and credited, is
-  better still.
+  better still — once the user has asked for pictures to be added.
+- **No quota.** A surface with no pictures is judged on its type, its colour and its content; nothing
+  counts images, and a page is never padded with stock to reach a number.
 - Every found picture is downloaded into the project, credited on the surface and listed in the report.
   None is presented as the client's own.
 - Nothing ever lies on top of a headline or a statement (the inspector fails it).
@@ -553,7 +567,7 @@ composition, its own states, and a demonstration on realistic content rather tha
 (PDF/PNG) or a seeded interactive one on the `assets/viewer.html` template. The house rules apply to the
 typography and colour of the piece, not to its medium (`inspect.mjs` and `lint.mjs` accept `--surface art`
 and automatically recognise a self-contained `<canvas>` viewer, counting `requestAnimationFrame` canvas
-drawing in the motion check and exempting it from the external photo/video floor).
+drawing in the motion check).
 
 **No checkout, no form backend.** The primary button goes to the real destination when the brief names one.
 Otherwise it opens an email with a written subject and body (`mailto:` with the visitor's choices filled
@@ -584,7 +598,7 @@ collections could not be searched.
 | `references/visual-art.md` | Generative and print work: the philosophy-first workflow and the viewer template. |
 | `references/creative-patterns.md` | The pattern library, sorted into what survives the house rules and what is now a dated tell. |
 | `scripts/draw.mjs` | Deals and reprints the direction; `--photos`, `--site <id>` for more references. |
-| `scripts/assets.mjs` | Step 7.4: searches open collections for real pictures of the subject's world; `--get` downloads with the credit, `--credits` prints them. |
+| `scripts/assets.mjs` | Step 7.4, only after the user asks for pictures: searches open collections for real pictures of the subject's world. Every search and `--get` needs `--user-requested`; `--credits` prints what is already on disk. |
 | `scripts/mock.mjs` | Step 6. Renders the dealt direction as one throwaway HTML file; `--approve` records the answer against the exact files and `--check` is step 7's precondition. |
 | `scripts/lint.mjs` · `scripts/inspect.mjs` | The gate. |
 | `scripts/audit.mjs` | Checks the research library itself — every role legible, every surface visible, every accent distinct from its ink, every palette offering a field, every saturated ground saying where pictures go, every stylesheet link well formed. Run it before changing anything in `library/`. |

@@ -44,10 +44,11 @@ sheets. Make each pass on its own; do not blend them.
 7. **Colour.** Name the proportions: which colour holds most of the surface, which supports, where is
    the accent? An accent that appears in ten places means nothing. One that appears on the single
    action and one detail means "here".
-8. **Images.** Count the real pictures: are there at least four, and is there a moving one? A page of
-   drawings only, or of type only, looks unfinished next to one with real photographs and footage.
-   Is every image doing a job (showing the thing, setting the place, proving the claim)?
-   Do the crops share ratios? Is anything a grey box, a stretched photo, a fake screen made of bars?
+8. **Images.** Ask what each picture is doing, not how many there are: showing the thing, setting the
+   place, proving the claim. A page of drawings only, or of type only, can be finished — if the type,
+   the colour and the content carry it (`imagery.md` §9); an empty box, a grey placeholder or a stock
+   mix of unrelated photographs cannot.
+   Do the crops share ratios? Is anything a stretched photo, a fake screen made of bars?
    Does the photography share one light and one grade, or is it a stock mix?
    **On a product surface**, count interface fragments built at true size instead of photographs, and check
    each carries real labels and numbers that reconcile (`product-surfaces.md` §7). A fragment made of grey
@@ -124,8 +125,6 @@ These override the arithmetic.
   a screenshot: overall cannot exceed **6.5**, whatever else is true.
 - Pass 3 fails (the page could belong to anyone): creativity cannot exceed **6**.
 - The idea passes for the nearest competitor (pass 14): creativity cannot exceed **7**.
-- Fewer than four real pictures (photographs, archival images, footage; drawings do not count):
-  design cannot exceed **6.5**.
 - A page that barely moves (the inspector's `still-page`), or motion that is one identical fade on
   every block: design cannot exceed **7**.
 - No live thing (pass 14): creativity cannot exceed **7.5**.

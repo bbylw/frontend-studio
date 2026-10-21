@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fieldnotes — Issue 12</title>
+<style>
+  :root{
+    --bg:#f7f7f5; --ink:#14150f; --muted:#4a4a44; --accent:#1b4d3e; --field:#e9e9e6;
+    --step-1:17px; --step-2:22px; --step-3:clamp(38px,4.6vw,64px); --step-4:clamp(56px,7vw,112px);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:Georgia,"Times New Roman",serif;font-size:var(--step-1);line-height:1.55}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 32px}
+  header{display:flex;justify-content:space-between;align-items:baseline;padding:26px 0}
+  .wordmark{font-size:20px;letter-spacing:-0.01em}
+  nav a{color:var(--ink);text-decoration:none;margin-left:26px;font-size:16px}
+  nav a:hover,nav a:focus-visible{text-decoration:underline;text-underline-offset:4px}
+  .hero{padding:56px 0 72px}
+  h1{margin:0 0 22px;font-size:var(--step-4);line-height:0.92;letter-spacing:-0.03em;font-weight:400;max-width:14ch}
+  .lede{margin:0;max-width:46ch;font-size:var(--step-2);line-height:1.35}
+  .action{display:inline-block;margin-top:30px;background:var(--accent);color:#f7f7f5;padding:15px 26px;font-size:16px;text-decoration:none;border-radius:2px}
+  .action:hover,.action:focus-visible{background:#123528}
+  section{padding:64px 0}
+  .rule-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:26px}
+  h2{margin:0;font-size:var(--step-2);font-weight:400;letter-spacing:-0.01em}
+  .count{color:var(--muted);font-size:15px}
+  ol{margin:0;padding:0;list-style:none}
+  li{padding:26px 0}
+  li+li{border-top:0}
+  .t{font-size:clamp(24px,2.4vw,34px);line-height:1.15;letter-spacing:-0.01em;margin:0 0 8px;font-weight:400}
+  .s{margin:0;color:var(--muted);max-width:58ch}
+  .field{background:var(--field);padding:64px 0}
+  .field .inner{max-width:68ch}
+  .field p{margin:0 0 18px}
+  .sign{color:var(--muted);font-size:15px}
+  .sub{display:grid;grid-template-columns:1.2fr 1fr;gap:48px;align-items:start}
+  .price{font-size:clamp(32px,3.4vw,46px);line-height:1;letter-spacing:-0.02em;margin:0 0 10px}
+  .fine{color:var(--muted);font-size:15px;margin:0 0 22px}
+  footer{padding:56px 0 72px;color:var(--muted);font-size:15px}
+  .rise{animation:rise .7s cubic-bezier(.16,1,.3,1) both}
+  .d1{animation-delay:.05s}.d2{animation-delay:.12s}.d3{animation-delay:.19s}.d4{animation-delay:.26s}
+  .d5{animation-delay:.33s}.d6{animation-delay:.4s}.d7{animation-delay:.47s}.d8{animation-delay:.54s}
+  @keyframes rise{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion: reduce){.rise{animation:none}}
+  @media (max-width:760px){
+    .sub{grid-template-columns:1fr;gap:28px}
+    header{flex-direction:column;gap:12px}
+    nav a{margin:0 18px 0 0}
+    .hero{padding:32px 0 48px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="wordmark rise">Fieldnotes</div>
+    <nav class="rise d1" aria-label="Sections">
+      <a href="#essays">Essays</a>
+      <a href="#letter">Letter</a>
+      <a href="#subscribe">Subscribe</a>
+    </nav>
+  </header>
+
+  <div class="hero">
+    <h1 class="rise d2">Walking, slowly</h1>
+    <p class="lede rise d3">Four essays on what happens to attention when a journey stops being a way to arrive and becomes the thing itself.</p>
+    <a class="action rise d4" href="#subscribe">Start with issue twelve</a>
+  </div>
+
+  <section id="essays">
+    <div class="rule-head rise d5">
+      <h2>In this issue</h2>
+    </div>
+    <ol>
+      <li class="rise d6">
+        <h3 class="t">The long way to the coast</h3>
+        <p class="s">Marta Vey walks the same ninety kilometres every March and finds a different road each time. A study of how repetition changes a landscape.</p>
+      </li>
+      <li class="rise d6">
+        <h3 class="t">Notes on a borrowed dog</h3>
+        <p class="s">Ivan Brod takes a neighbour's lurcher up the same hill for a fortnight and discovers that the animal sets a pace no human would choose.</p>
+      </li>
+      <li class="rise d7">
+        <h3 class="t">What the stile knows</h3>
+        <p class="s">A short history of the gaps built into English field boundaries, and what they assume about the people who cross them.</p>
+      </li>
+      <li class="rise d7">
+        <h3 class="t">Night walking in a small town</h3>
+        <p class="s">Between two and four in the morning, a town of nine thousand people belongs to whoever is awake. An essay in nine streets.</p>
+      </li>
+    </ol>
+  </section>
+</div>
+
+<div class="field">
+  <div class="wrap">
+    <section id="letter" class="inner">
+      <h2 class="rise d8">From the editor</h2>
+      <p class="rise d8">This issue began with a complaint. A friend had bought a watch that counted his steps and told him, at the end of every day, how far short of ten thousand he had fallen. He walked more, and enjoyed it less.</p>
+      <p class="rise d8">The four essays here are not against walking quickly, or against measuring. They are about the other thing: the walk that has no number attached to it, the detour taken because a lane looked interesting, the hour spent sitting on a wall because the light was doing something worth watching. Each writer was asked to keep going until the walk stopped being a means and became the subject.</p>
+      <p class="rise d8">We have kept the page plain for the same reason. There is nothing here but the words and the order they arrive in.</p>
+      <p class="sign rise d8">— The editor, Fieldnotes</p>
+    </section>
+  </div>
+</div>
+
+<div class="wrap">
+  <section id="subscribe">
+    <div class="sub">
+      <div>
+        <h2 class="rise">Four issues a year</h2>
+        <p class="rise">Each issue is a single theme, four or five essays, and a letter. Printed in Norwich on uncoated stock, posted worldwide, and published online on the same day.</p>
+      </div>
+      <div class="rise">
+        <p class="price">€24</p>
+        <p class="fine">A year, four issues, postage included.</p>
+        <a class="action" href="mailto:subscribe@fieldnotes.example?subject=Fieldnotes%20subscription">Subscribe by email</a>
+      </div>
+    </div>
+  </section>
+  <footer>
+    <p>Fieldnotes · Issue 12 · Autumn 2026</p>
+  </footer>
+</div>
+</body>
+</html>

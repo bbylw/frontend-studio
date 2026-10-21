@@ -32,39 +32,54 @@ how to crop and place them, and what to do when there are none.
   3%.
 - Among the 54 sites the panel scored under 6.8, legibility (text lost over a busy image, or too
   little contrast) was named as a weakness in 13.
+- **None of this is a quota.** The median of 37 describes award-winning sites as a population; it is not a
+  requirement for any one subject. A text-led surface is a different kind of object (section 9), and this
+  skill counts nothing.
 
 ## 2. Decide what imagery exists
 
-In order of preference:
+**By default a surface uses the project's own images or none at all.** Pictures from outside are added
+only when the user has explicitly asked for them; until then the order is:
 
 1. **The project's own images.** Product shots, the place, the people, the work. Even ordinary
    photographs of the real thing beat beautiful photographs of something else. Ask what exists; look in
    the repository.
-2. **Images you can generate** with an image tool in this session. Write prompts as a photographer's
-   brief: subject, angle, light, background, crop ratio, and "no text". Generate the hero first and
-   make the rest match its light.
-3. **Real pictures of the subject's world from the open collections** (section 3). Archives,
-   museums and photographers have published millions of pictures anyone may use with a credit: the
-   client's city and street in old postcards, maps of its neighbourhood, its materials, its trade in
-   engravings, museum objects of its kind. Whenever an honest one exists, it beats a drawing of the
-   same thing: it is real, it has detail no drawing in a page's budget reaches, and it carries history.
-   Honest means nobody could take it for the client's own product, room, dish, person or team.
-4. **Pictures you draw in code from the subject itself** (section 8), for what no honest picture
+2. **Pictures you draw in code from the subject itself** (section 8), for what no honest picture
    exists of: the product's own objects as flat shapes, the place's tiles and windows, a map of its
    streets, the document a tool produces, the interface of a piece of software. In testing, pages that
    drew their subject with care beat pages that borrowed unrelated photographs every time, and beat
    pages that showed nothing.
-5. **The photographs dealt on the direction sheet.** Real photographs of places, light, texture and
-   weather. Use them only where an honestly generic picture fits (the open sea for a house on the sea,
-   fog for a quiet retreat). They cannot stand in for a specific product, dish, room, person or
-   screen: a foggy motorway on a restaurant page reads as stock at once, and jurors notice.
-6. **Type and colour alone,** done on purpose (section 9).
+3. **Type and colour alone,** done on purpose (section 9). This is a legitimate design, not a gap to
+   disguise: only 7 of the studied sites use no imagery at all, and they hold their own (median 7.5
+   against 7.2 for the set).
 
-Tell `draw.mjs` the truth with `--have`. If you have no product photographs and no image tool, do not
-pass `product-photo`; the draw will avoid the directions that depend on showing the object. Pictures
-found in the open collections are not the project's own: do not pass `photography` for them.
+**Only after the user asks for pictures to be added** — and only when `draw.mjs` was run with
+`--requested-images`, which is how that request reaches the sheet — these come before drawings:
+
+- **Images you can generate** with an image tool in this session. Write prompts as a photographer's
+  brief: subject, angle, light, background, crop ratio, and "no text". Generate the hero first and
+  make the rest match its light.
+- **Real pictures of the subject's world from the open collections** (section 3). Archives, museums and
+  photographers have published millions of pictures anyone may use with a credit: the client's city and
+  street in old postcards, maps of its neighbourhood, its materials, its trade in engravings, museum
+  objects of its kind. Whenever an honest one exists, it beats a drawing of the same thing: it is real,
+  it has detail no drawing in a page's budget reaches, and it carries history. Honest means nobody could
+  take it for the client's own product, room, dish, person or team.
+- **The photographs dealt on the direction sheet.** Real photographs of places, light, texture and
+  weather. Use them only where an honestly generic picture fits (the open sea for a house on the sea,
+  fog for a quiet retreat). They cannot stand in for a specific product, dish, room, person or screen: a
+  foggy motorway on a restaurant page reads as stock at once, and jurors notice.
+
+Tell `draw.mjs` the truth with `--have`, listing only assets the project owns. If you have no product
+photographs, do not pass `product-photo`; the draw will avoid the directions that depend on showing the
+object, deal no photographs, and say what replaces them. Pictures found in the open collections are not
+the project's own: never pass `photography` for them.
 
 ## 3. Real pictures from the open collections
+
+**Only after the user has asked for pictures.** Every search and every `--get` requires
+`--user-requested`; without it the script refuses, searches nothing and says why. Record the user's words
+in the report.
 
 `scripts/assets.mjs` searches four open sources without keys and prints, for each find, a direct image
 URL, the page it comes from, its size, its creator, its licence and a credit line:
@@ -76,11 +91,11 @@ URL, the page it comes from, its size, its creator, its licence and a credit lin
   prints, drawings, photographs, textiles and objects, in large scans.
 
 ```bash
-node <skill>/scripts/assets.mjs "ghent postcard"
-node <skill>/scripts/assets.mjs "fig" --source museums --orientation portrait
-node <skill>/scripts/assets.mjs "basalt texture" --min-width 2400 --source openverse,commons
-node <skill>/scripts/assets.mjs --get commons:36649959,met:707892     # download, record the credits
-node <skill>/scripts/assets.mjs --credits                             # footer line and report list
+node <skill>/scripts/assets.mjs "ghent postcard" --user-requested
+node <skill>/scripts/assets.mjs "fig" --source museums --orientation portrait --user-requested
+node <skill>/scripts/assets.mjs "basalt texture" --min-width 2400 --source openverse,commons --user-requested
+node <skill>/scripts/assets.mjs --get commons:36649959,met:707892 --user-requested   # download, record the credits
+node <skill>/scripts/assets.mjs --credits                                            # footer line and report list
 ```
 
 By default it keeps only licences that allow commercial use (CC0, public domain, CC BY, CC BY-SA) and
@@ -170,6 +185,10 @@ source (no network), draw, and say so in the report. For moving pictures, the sa
 real footage with `--video` (section 11).
 
 ## 4. The dealt photographs
+
+These are external (Unsplash, served by Lorem Picsum), so the sheet deals them only when `draw.mjs` was
+run with `--requested-images`. Without that request there is no set and nothing to fill a slot with — which
+is the normal case.
 
 - The sheet lists eight from one set so they share a subject and a light. Use three to six.
 - Each line says where the calm area is. Put text there or keep text off the image.

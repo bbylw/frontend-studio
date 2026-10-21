@@ -20,7 +20,7 @@
 // Deliberately absent, because each one costs time and none of them is needed to answer "is this the
 // direction?": photographs, footage, motion, interactive states, real body copy, responsive polish
 // beyond the two breakpoints the sketch uses. Do not run inspect.mjs on the output — it is a sketch,
-// and the gate's floors (four pictures, a motion layer) belong to the build.
+// and the gate's floors (the motion layer, the picture rules) belong to the build.
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { dirname, join, resolve } from 'node:path';
