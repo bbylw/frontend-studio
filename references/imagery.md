@@ -342,9 +342,9 @@ and NASA (the Earth from orbit, launches, aircraft, laboratories). The rest of t
 left out: anyone can upload there, and the licence claims are unchecked.
 
 ```bash
-node <skill>/scripts/assets.mjs "coffee roasting" --video
-node <skill>/scripts/assets.mjs "river" --video --source commons,nasa --orientation landscape
-node <skill>/scripts/assets.mjs --get commons:49769620        # the clip, a poster frame, the credit
+node <skill>/scripts/assets.mjs "coffee roasting" --video --user-requested
+node <skill>/scripts/assets.mjs "river" --video --source commons,nasa --orientation landscape --user-requested
+node <skill>/scripts/assets.mjs --get commons:49769620 --user-requested   # the clip, a poster frame, the credit
 ```
 
 It takes a rendition of 720p or smaller (`--res` changes that), lists short clips first, prints each

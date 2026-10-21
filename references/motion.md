@@ -45,8 +45,8 @@ scrolls, and fails it under eight elements. The motion layer has four parts:
   line by line.
 - **Feedback under the hand:** buttons that give on press, links that answer the pointer, cards and
   pictures that respond on hover, a menu that opens from where it was clicked.
-- **One moving picture:** a found clip as a muted loop with a poster frame, a slow drift or scale on
-  a large photograph, or a scroll-linked move on the hero picture.
+- **One moving picture (when the page has pictures):** a found clip as a muted loop with a poster frame, a slow drift or scale on
+  a large photograph, or a scroll-linked move on the hero picture. On a page with no pictures, that slot belongs to the wordmark, display type or a drawing carrying the signature move.
 
 What is still banned: the same fade-and-slide-up with the same timing on every block, which is the most
 cited motion tell of generated pages; motion that hides content until a script runs, with no fallback;

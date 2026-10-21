@@ -249,7 +249,9 @@ if (opt('redraw')) {
       console.log(`## \`${d.id}\` — ${d.name}`);
       console.log(`Idea engine: ${d.idea.split(/(?<=\.)\s/).slice(0, 2).join(' ')}`);
       console.log(`Composition: ${d.composition.split(/(?<=\.)\s/).slice(0, 2).join(' ')}`);
-      if (d.needsPictures) console.log('Needs: many pictures. Without photographs of its own, each is a real picture of the subject\'s world found with scripts/assets.mjs, or a drawing you make.');
+      if (d.needsPictures) console.log(input.extend
+        ? 'Needs: many pictures. Without photographs of its own, each is a real picture of the subject\'s world found with scripts/assets.mjs --user-requested, or a drawing you make.'
+        : 'Needs: many pictures (pass --have photography or --requested-images if the project or user provides them; otherwise draw the subject in code).');
       console.log('');
     }
     process.exit(0);
@@ -328,7 +330,9 @@ function dealHero(dir, input, exclude) {
   if (imageryMode(input) !== 'interface' && !input.have.includes('product-ui')) { const plain = pool.filter((h) => !softwareOnly(h)); if (plain.length) pool = plain; }
   // A working surface cannot lead with a photograph of something else, so media-led heroes are dropped.
   if (imageryMode(input) === 'interface') { const plain = pool.filter((h) => !mediaLed(h)); if (plain.length) pool = plain; }
-  const ok = pool.filter((h) => !exclude.includes(h.id) && (h.needs || []).every((n) => n === 'photography' || input.have.includes(n)));
+  const hasPhoto = input.have.includes('photography') || input.have.includes('product-photo') || Boolean(input.extend);
+  if (imageryMode(input) === 'none') { const plain = pool.filter((h) => !mediaLed(h) && worksWithoutPictures(h)); if (plain.length) pool = plain; }
+  const ok = pool.filter((h) => !exclude.includes(h.id) && (h.needs || []).every((n) => (n === 'photography' && hasPhoto) || input.have.includes(n)));
   return pick(fresh(ok.length ? ok : pool.filter((h) => !exclude.includes(h.id)).length ? pool.filter((h) => !exclude.includes(h.id)) : pool, recent('hero', 3)));
 }
 function dealType(dir, exclude) {
@@ -455,12 +459,13 @@ function sectionPool(dir, role, input) {
   let pool = L.sections.filter((s) => s.role === role);
   if (!pool.length) return [];
   const mode = imageryMode(input);
-  const feasible = pool.filter((s) => (s.needs || []).every((n) => n === 'photography' || input.have.includes(n) || (n === 'product-ui' && mode === 'interface')));
+  const hasPhoto = input.have.includes('photography') || input.have.includes('product-photo') || Boolean(input.extend);
+  const feasible = pool.filter((s) => (s.needs || []).every((n) => (n === 'photography' && hasPhoto) || input.have.includes(n) || (n === 'product-ui' && mode === 'interface')));
   if (feasible.length) pool = feasible;
   if (mode !== 'interface' && !input.have.includes('product-ui')) { const plain = pool.filter((s) => !softwareOnly(s)); if (plain.length) pool = plain; }
-  if (mode === 'interface' || mode === 'no-product-photo') {
+  if (mode === 'interface' || mode === 'no-product-photo' || mode === 'none') {
     // prefer compositions that do not hang on a photograph of the thing
-    const honest = pool.filter((s) => (mode === 'interface' ? worksWithoutPictures(s) : !(s.tags || []).includes('object-led') || worksWithoutPictures(s)));
+    const honest = pool.filter((s) => (mode === 'interface' || mode === 'none' ? worksWithoutPictures(s) : !(s.tags || []).includes('object-led') || worksWithoutPictures(s)));
     if (honest.length >= 2) pool = honest;
   }
   const byDirection = pool.filter((s) => (s.directions || []).includes(dir.id));
@@ -627,7 +632,7 @@ function render(s) {
   if (s.motion) {
     p(`## 8. Motion — ${s.motion.name}`); p(s.motion.description);
     if ((s.input.surface || 'page') === 'product') p('In a working interface the motion floor is lower than on a marketing page, never zero: immediate feedback on every control, real state transitions when panels or rows change, and one signature move where it serves the work (references/product-surfaces.md §6).');
-    else p('This is the signature move, the one loud moment. Around it the page still needs the rest of the motion layer (SKILL.md step 10): an entrance for the parts of every section, feedback on every control, and one moving picture. The inspector fails a page that barely moves. Recipes: references/motion.md.');
+    else p('This is the signature move, the one loud moment. Around it the page still needs the rest of the motion layer (SKILL.md step 10): an entrance for the parts of every section, feedback on every control, and one moving picture (or, on a page with no pictures, the wordmark, display type or a drawing carrying the signature move). The inspector fails a page that barely moves. Recipes: references/motion.md.');
     p();
   }
   if (d.richness) { p('## 9. Where the richness comes from'); p(d.richness); p(); }

@@ -18,10 +18,10 @@
 //        [--orientation landscape|portrait|square]  [--min-width 1000]  [--width 1920]  [--limit 5]
 //        [--no-check]                              skip checking that each image loads (faster)
 //        [--json]                                  machine-readable results
-//   node assets.mjs "<query>" --video              search for real footage instead (same options, plus
+//   node assets.mjs "<query>" --video --user-requested   search for real footage instead (same options, plus
 //        [--res 720]                               the largest rendition to pick, by its short side
 //        [--max-mb 25]                             clips over this are flagged, and --get refuses them
-//   node assets.mjs --get <ref>[,<ref>...] [--to assets] [--name <file name>] [--width 1920] [--res 720] [--max-mb 25]
+//   node assets.mjs --get <ref>[,<ref>...] --user-requested [--to assets] [--name <file name>] [--width 1920] [--res 720] [--max-mb 25]
 //                                                  download into the project and record the credit
 //   node assets.mjs --credits [--to assets]        print the credits for the footer and the report
 //
