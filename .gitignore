@@ -1,6 +1,8 @@
 # draw.mjs writes its sheet and the inspector writes its screenshots into .frontend-studio/
 # in whatever directory it is run from, which is sometimes this one.
 .frontend-studio/
+# Local working memory for this skill (daily logs, notes). Machine-specific, not part of the skill.
+.workbuddy/
 node_modules/
 *.log
 .DS_Store
